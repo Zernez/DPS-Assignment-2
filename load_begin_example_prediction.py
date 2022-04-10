@@ -11,7 +11,7 @@ tfidf_transformer = tf_idf(categories)[0]
 consumer = KafkaConsumer('twitter-stream',bootstrap_servers=\['localhost:9092'])
 print("Starting ML predictions.")
 for message in consumer:
-X_new_counts = count_vect.transform([message.value])
-X_new_tfidf = tfidf_transformer.transform(X_new_counts)
-predicted = load_model.predict(X_new_tfidf)
-print(message.value+" => "+fetch_train_dataset(categories).target_names[predicted[0]])
+    X_new_counts = count_vect.transform([message.value])
+    X_new_tfidf = tfidf_transformer.transform(X_new_counts)
+    predicted = load_model.predict(X_new_tfidf)
+    print(message.value+" => "+fetch_train_dataset(categories).target_names[predicted[0]])

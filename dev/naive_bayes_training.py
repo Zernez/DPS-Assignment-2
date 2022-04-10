@@ -17,7 +17,7 @@ def fetch_train_dataset(categories):
 def bag_of_words(categories):
     count_vect = CountVectorizer()
     X_train_counts = count_vect.fit_transform(fetch_train_dataset(categories).data)
-    pickle.dump(count_vect.vocabulary_, open("vocab.pickle", 'wb'))
+    pickle.dump(count_vect.vocabulary_, open("behaviour.pickle", 'wb'))
     return X_train_counts
 
 def tf_idf(categories):
