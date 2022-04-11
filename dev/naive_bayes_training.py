@@ -3,16 +3,28 @@ from sklearn.datasets import fetch_20newsgroups #built-in dataset
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
+import os
 import pickle
-from kafka import KafkaConsumer
+import pandas as pd
+from scipy.io import wavfile as wav
+from scipy.fftpack import fft
 
 #Defining model and training it
-categories = ["Cleaning vacum machine","Cleaning dishes","Listen music",\
-"Watching TV","Sleep","General acticvity"] 
+categories = ["Cleaning vacum machine","Cleaning dishes","Listen music","Watching TV","Sleep","General acticvity"] 
+folder_data= "./data/"
+folder_audio= "'./data/audio/"
 
 def fetch_train_dataset(categories):
-    twenty_train = fetch_20newsgroups(subset='train', categories=categories, shuffle=True, random_state=42)
-    return twenty_train
+    for file in os.listdir(folder_audio):
+        frequencies = ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10", "category"] 
+        rate, data = wav.read(file)
+        fft_out = fft(data)
+        name= os.path.basename(file)
+        name.replace('.wav', '')
+        
+        #data is dataframe?
+
+    return data
 
 def bag_of_words(categories):
     count_vect = CountVectorizer()
