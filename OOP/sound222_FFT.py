@@ -11,16 +11,20 @@ from numpy.fft import fft
 
 class sounds:
 
+	counter= 0
+	sampler= []
+	client = mqtt.Client()
+
 	def onVoltageRatioChange(self, voltageRatio):
 	
-		if (counter< 500):
-			counter+= 1
-			sampler.append(voltageRatio)
+		if (self.counter< 500):
+			self.counter+= 1
+			self.sampler.append(voltageRatio)
 		else:
-			fft= fft(sampler)
-			client.publish("test", f"test message {fft}")
-			sampler.clear()
-			counter= 0
+			fft= fft(self.sampler)
+			self.client.publish("test", f"test message {fft}")
+			self.sampler.clear()
+			self.counter= 0
 			
 		print("VoltageRatio: " + str(voltageRatio))
 
@@ -30,18 +34,18 @@ class sounds:
 	def onDetach(self):
 		print("Detach!")
 
-	def main():
+	def main(self):
 		try:
 			#Create your Phidget channels
-			voltageRatioInput0 = VoltageRatioInput()
+			voltageRatioInput0 = self.VoltageRatioInput()
 
 			#Set addressing parameters to specify which channel to open (if any)
 			voltageRatioInput0.setDeviceSerialNumber(137422)
 
 			#Assign any event handlers you need before calling open so that no events are missed.
-			voltageRatioInput0.setOnVoltageRatioChangeHandler(onVoltageRatioChange)
-			voltageRatioInput0.setOnAttachHandler(onAttach)
-			voltageRatioInput0.setOnDetachHandler(onDetach)
+			voltageRatioInput0.setOnVoltageRatioChangeHandler(self.onVoltageRatioChange)
+			voltageRatioInput0.setOnAttachHandler(self.onAttach)
+			voltageRatioInput0.setOnDetachHandler(self.onDetach)
 
 			#Open your Phidgets and wait for attachment
 			voltageRatioInput0.openWaitForAttachment(5000)
@@ -52,13 +56,6 @@ class sounds:
 			voltageRatioInput0.setDataInterval(10)
 			dataInterval = voltageRatioInput0.getDataInterval()
 			print("DataInterval: " + str(dataInterval))
-		
-			global client
-			global counter
-			global sampler
-		
-			counter= 0
-			sampler= []
 
 			#Do stuff with your Phidgets here or in your event handlers.
 		
@@ -70,36 +67,24 @@ class sounds:
 			def on_publish(client, userdata, message_id):
 				print(f"message with ID {message_id} published")
 
-			client = mqtt.Client()
 			# Client callback that is called when the client successfully connects to the broker.
-			client.on_connect = on_connect
+			self.client.on_connect = on_connect
 			# Client callback that is called when the client successfully publishes to the broker.
-			client.on_publish = on_publish
+			self.client.on_publish = on_publish
 
 			# Connect to the MQTT broker running in the localhost.
-			client.connect("localhost", 1883, 60)		
-		
-#			message_counter = 0
-
-			# The client will publish a message to the broker every 3 seconds.
-#			while True:
-#				client.publish("test", f"test message {message_counter}")
-#				message_counter += 1
-#				sleep(1)
+			self.client.connect("localhost", 1883, 60)		
 
 			try:			
 				input("Press Enter to Stop\n")
 			except (Exception, KeyboardInterrupt):
 				pass
 
-		#Close your Phidgets once the program is done.
-		voltageRatioInput0.close()
+			#Close your Phidgets once the program is done.
+			voltageRatioInput0.close()
 
 		except PhidgetException as ex:
 			#We will catch Phidget Exceptions here, and print the error informaiton.
 			traceback.print_exc()
 			print("")
 			print("PhidgetException " + str(ex.code) + " (" + ex.description + "): " + ex.details)
-
-
-	main()
