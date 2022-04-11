@@ -19,23 +19,25 @@ class training:
 
     def fetch_train_dataset(self, activities):
         for file in os.listdir(self.folder_audio):
-            predictors = ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","average_amplitude","activity"] 
+            predictors = ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","average_amplitude","activity"]
+            frequencies= ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10"] 
             rate, data = wav.read(file)
             name= os.path.basename(file)
             name.replace('.wav', '')
-
             start_index= 0
             data_out= pd.Dataframe(columns=predictors)
+            
             for rowIndex, row in data.iterrows():
                 
                 if (rowIndex% self.data_res== 0):
                     temp_data= data [start_index:rowIndex]
                     temp_data["average_amplitude"]= temp_data.mean(axis= 1)
-                    temp_data= pd.DataFrame(fft(temp_data), columns=predictors)
+                    temp_data= pd.DataFrame(fft(temp_data), columns=frequencies)
                     num = len(self.activities)
                     self.activities[num]= name
-                    temp_data["activity"]= num       
-
+                    temp_data["activity"]= num                       
+                    data_out= data_out.append(temp_data, ignore_index=True)
+                           
                     start_index= rowIndex
         return data_out
 

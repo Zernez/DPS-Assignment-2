@@ -1,5 +1,5 @@
-from predict_model import prediction
+from predict_model import predict
 
-result= prediction()
+result= predict()
 
 result= result.predict()
