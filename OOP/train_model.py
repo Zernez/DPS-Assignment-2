@@ -21,8 +21,11 @@ class training:
 
 
     def fetch_train_dataset(self, activities):
+
+        predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]    
+        data_out= pd.DataFrame(columns= predictors)
+
         for file in os.listdir(self.folder_audio):
-            predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]
             rate, data = wav.read(self.folder_audio + file)
             x= data[:, 0]
 
@@ -39,7 +42,6 @@ class training:
             activities[num]= name
             row_activ= [num+1]
         
-            data_out= pd.DataFrame()
             start_index= 0
             data_fft= []
             
