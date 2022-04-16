@@ -7,38 +7,75 @@ import pickle
 import pandas as pd
 from scipy.io import wavfile as wav
 from scipy.fftpack import fft
+import numpy as np
 
 class training:
 
     #Defining model and training it
     activities= {}
     folder_data= "./data/"
-    folder_audio= "'./data/audio/"
-    data_res= 100
+    folder_audio= "./data/audio/"
+    data_res= 44100
+    freq_band= 15
+    freq_interested= int((data_res/2)/freq_band)
 
 
     def fetch_train_dataset(self, activities):
         for file in os.listdir(self.folder_audio):
-            predictors = ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","average_amplitude","activity"]
-            frequencies= ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10"] 
-            rate, data = wav.read(file)
+            predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]
+            rate, data = wav.read(self.folder_audio + file)
+            x= data[:, 0]
+
+            i= self.data_res
+            slice_x= []
+        
+            while (i< len (x)):
+                slice_x.append(i-1)
+                i+= self.data_res
+
             name= os.path.basename(file)
-            name.replace('.wav', '')
+            name= name.replace('.wav', '')
+            num = len(activities)
+            activities[num]= name
+            row_activ= [num+1]
+        
+            data_out= pd.DataFrame()
             start_index= 0
-            data_out= pd.Dataframe(columns=predictors)
+            data_fft= []
             
-            for rowIndex, row in data.iterrows():
-                
-                if (rowIndex% self.data_res== 0):
-                    temp_data= data [start_index:rowIndex]
-                    temp_data["average_amplitude"]= temp_data.mean(axis= 1)
-                    temp_data= pd.DataFrame(fft(temp_data), columns=frequencies)
-                    num = len(self.activities)
-                    self.activities[num]= name
-                    temp_data["activity"]= num                       
-                    data_out= data_out.append(temp_data, ignore_index=True)
-                           
-                    start_index= rowIndex
+            for index in slice_x:
+                        
+                temp_data= x [start_index:index]
+                row_ampl= [np.mean(temp_data, axis= 0)]
+                temp_data_fft = np.abs(fft(temp_data).real)                
+       
+                i= self.freq_interested
+                j= 1
+                slice_y= []
+                start_index_2= 1
+                data_fft= [temp_data_fft[0]]
+        
+                while (i< len (temp_data_fft) and j <= self.freq_band):
+                    slice_y.append(i-1)
+                    i+= self.freq_interested
+                    j+= 1 
+
+                for index_2 in slice_y:
+                    temp_mean= temp_data_fft [start_index_2:index_2]
+                    data_fft.append(np.mean(temp_mean, axis= 0))
+                    start_index_2= index_2
+            
+                data_fft.append(row_ampl)
+
+                data_fft.append(row_activ)
+    
+                data_fft= pd.DataFrame(data_fft).T
+                data_fft.columns= predictors
+            
+                data_out= data_out.append(data_fft, ignore_index=True)
+
+                start_index= index
+            
         return data_out
 
     def model(activities):
@@ -46,5 +83,5 @@ class training:
         return model
 
     model = model(activities)
-    pickle.dump(model,open("model.pickle", 'wb'))
+    pickle.dump(model,open(folder_data + "model.pickle", 'wb'))
     print("Training Finished!")
