@@ -10,6 +10,8 @@ class predict:
         activities= model.activities
     
     client = mqtt.Client()
+    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
+    data_out= pd.DataFrame(columns= predictors)   
 
     def load_model(self):
         model= model_to_load()
@@ -18,7 +20,7 @@ class predict:
     def predict_model(self, data, model):
         predict= model_to_run()
         return predict    
-    
+
     # The callback for when the client receives a CONNACK response from the server.
     
     def on_connect(client, userdata, flags, rc):
@@ -30,15 +32,12 @@ class predict:
 
 # The callback for when a PUBLISH message is received from the server.
     def on_message(self, client, userdata, msg):
-        predictors = ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","average_amplitude","activity"]
-        frequencies= ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10"]
-        data= msg.payload
-        data_out= pd.Dataframe(columns=predictors)
-        
-        for rowIndex, row in data.iterrows():           
-            temp_data= pd.DataFrame(row, columns=frequencies)
-            temp_data["average_amplitude"]= temp_data.mean(axis= 1)
-            data_out= data_out.append(temp_data, ignore_index=True)
+        data_fft= pd.DataFrame(msg).T
+        data_fft.columns= self.predictors          
+        self.data_out= self.data_out.append(data_fft, ignore_index=True)
+
+        if (self.data_out> 600):
+            self.data_out = self.data_out.iloc[1: , :]           
 
         #Loading model
         print("Loading pre-trained model")

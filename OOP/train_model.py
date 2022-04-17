@@ -8,6 +8,7 @@ import pandas as pd
 from scipy.io import wavfile as wav
 from scipy.fftpack import fft
 import numpy as np
+from predict_model import predict
 
 class training:
 
@@ -15,15 +16,17 @@ class training:
     activities= {}
     folder_data= "./data/"
     folder_audio= "./data/audio/"
-    data_res= 44100
-    freq_band= 15
-    freq_interested= int((data_res/2)/freq_band)
+    phidget= predict()
 
 
     def fetch_train_dataset(self, activities):
 
-        predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]    
-        data_out= pd.DataFrame(columns= predictors)
+        data_res= 44100
+        freq_band= 15
+        freq_interested= int((data_res/2)/freq_band)
+        predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]
+     
+        data_out= pd.DataFrame(columns= self.predictors)
 
         for file in os.listdir(self.folder_audio):
             rate, data = wav.read(self.folder_audio + file)
@@ -48,7 +51,7 @@ class training:
             for index in slice_x:
                         
                 temp_data= x [start_index:index]
-                row_ampl= [np.mean(temp_data, axis= 0)]
+                row_ampl= [np.mean(np.abs(temp_data), axis= 0)]
                 temp_data_fft = np.abs(fft(temp_data).real)                
        
                 i= self.freq_interested
@@ -72,11 +75,17 @@ class training:
                 data_fft.append(row_activ)
     
                 data_fft= pd.DataFrame(data_fft).T
-                data_fft.columns= predictors
+                data_fft.columns= self.predictors
             
                 data_out= data_out.append(data_fft, ignore_index=True)
 
                 start_index= index
+            
+        return data_out
+
+    def fetch_train_dataset_from_phidget(self):
+            
+        data_out= self.phidget.data_out
             
         return data_out
 
