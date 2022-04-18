@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.io import wavfile as wav
 from scipy.fftpack import fft
 import numpy as np
-from predict_model import predict
+import tensorflow as tf
 
 class training:
 
@@ -16,33 +16,30 @@ class training:
     activities= {}
     folder_data= "./data/"
     folder_audio= "./data/audio/"
-    phidget= predict()
 
-
-    def fetch_train_dataset(self, activities):
-
+    def fetch_train_dataset_from_wav(self):
         data_res= 44100
         freq_band= 15
         freq_interested= int((data_res/2)/freq_band)
         predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]
      
-        data_out= pd.DataFrame(columns= self.predictors)
+        data_out= pd.DataFrame(columns= predictors)
 
         for file in os.listdir(self.folder_audio):
             rate, data = wav.read(self.folder_audio + file)
             x= data[:, 0]
 
-            i= self.data_res
+            i= data_res
             slice_x= []
         
             while (i< len (x)):
                 slice_x.append(i-1)
-                i+= self.data_res
+                i+= data_res
 
             name= os.path.basename(file)
             name= name.replace('.wav', '')
-            num = len(activities)
-            activities[num]= name
+            num = len(self.activities)
+            self.activities[num]= name
             row_activ= [num+1]
         
             start_index= 0
@@ -54,15 +51,15 @@ class training:
                 row_ampl= [np.mean(np.abs(temp_data), axis= 0)]
                 temp_data_fft = np.abs(fft(temp_data).real)                
        
-                i= self.freq_interested
+                i= freq_interested
                 j= 1
                 slice_y= []
                 start_index_2= 1
                 data_fft= [temp_data_fft[0]]
         
-                while (i< len (temp_data_fft) and j <= self.freq_band):
+                while (i< len (temp_data_fft) and j <= freq_band):
                     slice_y.append(i-1)
-                    i+= self.freq_interested
+                    i+= freq_interested
                     j+= 1 
 
                 for index_2 in slice_y:
@@ -75,24 +72,38 @@ class training:
                 data_fft.append(row_activ)
     
                 data_fft= pd.DataFrame(data_fft).T
-                data_fft.columns= self.predictors
+                data_fft.columns= predictors
             
                 data_out= data_out.append(data_fft, ignore_index=True)
 
                 start_index= index
-            
+         
         return data_out
 
-    def fetch_train_dataset_from_phidget(self):
-            
-        data_out= self.phidget.data_out
-            
-        return data_out
+    def fetch_train_dataset_from_phidget(self, data, activity, lenght):
+        # Select here how many rows do you need "data.iloc[0:<How_many_row do you want>]" (e.g. 1 second is 1 row, max 600 rows)  
+        data= data [0:lenght]
+        data ["activity"]= activity     
+        return data
 
-    def model(activities):
-        model = Training_MachineLearning_Algo()
+    def create_model(self, data):
+        # build model
+        model = tf.keras.Sequential([
+        tf.keras.layers.Flatten(input_shape=(28, 28)),
+        # tf.keras.layers.Flatten(input_shape(11,100)),
+        tf.keras.layers.Dense(128, activation='relu'),
+        #tf.keras.layers.Dense(10, activation='relu'),
+        tf.keras.layers.Dense(10)
+        ])
+
+        model.compile(optimizer='adam',
+                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                      metrics=['accuracy'])
+
+        model.fit(train_images, train_labels, epochs=10)
+
+        test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
+
+        print('\nTest accuracy:', test_acc)
+        pickle.dump(model,open(self.folder_data + "model.pickle", 'wb'))
         return model
-
-    model = model(activities)
-    pickle.dump(model,open(folder_data + "model.pickle", 'wb'))
-    print("Training Finished!")

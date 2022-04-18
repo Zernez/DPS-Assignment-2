@@ -1,25 +1,36 @@
 import paho.mqtt.client as mqtt
 import pickle
 import pandas as pd
-from train_model import training
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+import numpy as np
 
 class predict:
-   
-    def __init__(self):
-        model= training()
-        activities= model.activities
-    
+
+    #To hard-code activities here   
+    activities= ["Computering","Vacuum_cleaning","Cooking"]    
+    folder_data= "./data/"    
     client = mqtt.Client()
     predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
     data_out= pd.DataFrame(columns= predictors)   
 
     def load_model(self):
-        model= model_to_load()
+        model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
         return model   
 
-    def predict_model(self, data, model):
-        predict= model_to_run()
-        return predict    
+    def predict_model(self, model, test_data, categories):
+        probability_model = tf.keras.Sequential([model,
+                                             tf.keras.layers.Softmax()])
+        predictions = probability_model.predict(test_data)
+
+        predicted_labels = []
+        predicted_cat = []
+        for pred in predictions:
+            lab = np.argmax(pred)
+            predicted_labels.append(lab)
+            predicted_cat.append(categories[lab])
+
+        return predicted_cat  
 
     # The callback for when the client receives a CONNACK response from the server.
     
@@ -36,14 +47,18 @@ class predict:
         data_fft.columns= self.predictors          
         self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
-        if (self.data_out> 600):
+        #Storage max 10 min e.g. 600 rows of 1 second each
+        if (self.data_out.shape[0]> 600):
             self.data_out = self.data_out.iloc[1: , :]           
 
         #Loading model
         print("Loading pre-trained model")
-        loaded_model = self.load_model()        
+        loaded_model = self.load_model()
+       
+        # Select here how many rows do you need "self.data_out.iloc[0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)    
+        predict_data= self.data_out [0:]   
 
-        self.predict_model(data_out, loaded_model)
+        self.predict_model(loaded_model, predict_data, self.activities)
 
         print(f"topic = {msg.topic}, payload = {msg.payload}")
 

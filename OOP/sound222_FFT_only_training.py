@@ -13,6 +13,8 @@ import numpy as np
 class sounds:
 
 	counter= 0
+	counter_total= 0
+	quantity= 60
 	sampler= []
 	client = mqtt.Client()
 	sample_rate= 1000
@@ -24,6 +26,7 @@ class sounds:
 	
 		if (self.counter< (self.sample_slice)):
 			self.counter+= 1
+			self.counter_total+= 1
 			self.sampler.append(voltageRatio)
 		else:
 			row_ampl= [np.mean(np.abs(self.sampler), axis= 0)]
@@ -46,11 +49,13 @@ class sounds:
 				start_index= index
             
 			data_fft.append(row_ampl) 			
-
-			self.client.publish("test", data_fft)
-			self.sampler.clear()
-			self.counter= 0
 			
+			if self.counter_total< self.quantity:
+				self.counter_total+= 1
+				self.client.publish("test", data_fft)
+				self.sampler.clear()
+				self.counter= 0				
+
 #		print("VoltageRatio: " + str(voltageRatio))
 
 	def onAttach(self):
