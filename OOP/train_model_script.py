@@ -2,8 +2,8 @@ from predict_model import predict
 from train_model import training
 import pandas as pd
 
-result_obj= predict()
-training_obj= training()
+prediction_obj= predict()
+train_obj= training()
 
 predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]
 training_data= pd.DataFrame(columns= predictors)
@@ -14,7 +14,7 @@ train_wav= True
 if train_wav== False:
 
 
-    data= result_obj.data_out
+    data= prediction_obj.data_out
     # Add activities "activities=[<all_activities>]" accordingly to "sound222_FFT_only_training.py" settings
     activities= ["Computering","Vacuum_cleaning","Cooking"]
 
@@ -24,13 +24,11 @@ if train_wav== False:
     index= quantity
 
     for activity in activities:
-        training_data= training_data.append(training_obj.fetch_train_dataset_from_phidget(data[start_index:index], activity), ignore_index=True)
+        training_data= training_data.append(train_obj.fetch_train_dataset_from_phidget(data[start_index:index], activity), ignore_index=True)
         start_index= index
         index+= quantity
         
 else:
-   training_data= training_obj.fetch_train_dataset_from_wav()
+   training_data= train_obj.fetch_train_dataset_from_wav()
 
-
-
-model= training_obj.create_model(training_data)
+model= train_obj.create_model(training_data)

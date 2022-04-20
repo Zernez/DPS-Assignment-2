@@ -15,15 +15,23 @@ class training:
     #Defining model and training it
     activities= {}
     folder_data= "./data/"
-    folder_audio= "./data/audio/"
+    folder_audio= "./data/audio/"   
+    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
+    data_out= pd.DataFrame(columns= predictors) 
+
+    counter= 0
+    sampler= []
+    sample_rate= 1000
+    sample_slice= sample_rate
+    freq_band= 15
+    freq_interested= int(sample_slice/freq_band)  
 
     def fetch_train_dataset_from_wav(self):
         data_res= 44100
         freq_band= 15
         freq_interested= int((data_res/2)/freq_band)
-        predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]
-     
-        data_out= pd.DataFrame(columns= predictors)
+        predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude","activity"]     
+        train_data= pd.DataFrame(columns= predictors)
 
         for file in os.listdir(self.folder_audio):
             rate, data = wav.read(self.folder_audio + file)
@@ -67,22 +75,63 @@ class training:
                     data_fft.append(np.mean(temp_mean, axis= 0))
                     start_index_2= index_2
             
-                data_fft.append(row_ampl)
+                data_fft.append(row_ampl[0])
 
-                data_fft.append(row_activ)
+                data_fft.append(row_activ[0])
     
                 data_fft= pd.DataFrame(data_fft).T
                 data_fft.columns= predictors
             
-                data_out= data_out.append(data_fft, ignore_index=True)
+                train_data= train_data.append(data_fft, ignore_index=True)
 
                 start_index= index
-         
-        return data_out
+        
+        return train_data
 
-    def fetch_train_dataset_from_phidget(self, data, activity, lenght):
+    def store_data_train(self, msg):  
+        
+        if (self.counter< (self.sample_slice)):
+            self.counter+= 1
+            self.sampler.append(msg)
+        else:
+            row_ampl= [np.mean(np.abs(self.sampler), axis= 0)]
+            temp_data_fft = np.abs(fft(self.sampler).real)
+            data_fft= [temp_data_fft[0]]
+               
+            i= self.freq_interested
+            j= 1
+            slice_y= []
+            start_index= 1
+        
+            while (i< len (temp_data_fft) and j <= self.freq_band):
+                slice_y.append(i-1)
+                i+= self.freq_interested
+                j+= 1 
+
+            for index in slice_y:
+                temp_mean= temp_data_fft [start_index:index]
+                data_fft.append(np.mean(temp_mean, axis= 0))
+                start_index= index
+            
+            data_fft.append(row_ampl)
+            self.sampler.clear()
+            self.counter= 0
+
+        data_fft= pd.DataFrame(data_fft).T
+        data_fft.columns= self.predictors          
+        self.data_out= self.data_out.append(data_fft, ignore_index=True)
+
+        #Storage max 10 min e.g. 600 rows of 1 second each
+        if (self.data_out.shape[0]> 600):
+            self.data_out = self.data_out.iloc[1: , :]
+
+        pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+        return 
+
+    def fetch_train_dataset_from_phidget(self, activity, lenght):
         # Select here how many rows do you need "data.iloc[0:<How_many_row do you want>]" (e.g. 1 second is 1 row, max 600 rows)  
-        data= data [0:lenght]
+        train_data= pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+        data= train_data[0:lenght]
         data ["activity"]= activity     
         return data
 

@@ -1,25 +1,18 @@
+import paho.mqtt.client as mqtt
 import pickle
 import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import numpy as np
-from numpy.fft import fft
-import time
 
 class predict:
 
     #To hard-code activities here   
     activities= ["Computering","Vacuum_cleaning","Cooking"]    
     folder_data= "./data/"    
+    client = mqtt.Client()
     predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
-    data_out= pd.DataFrame(columns= predictors) 
-
-    counter= 0
-    sampler= []
-    sample_rate= 1000
-    sample_slice= sample_rate
-    freq_band= 15
-    freq_interested= int(sample_slice/freq_band)  
+    data_out= pd.DataFrame(columns= predictors)   
 
     def load_model(self):
         model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
@@ -37,59 +30,45 @@ class predict:
             predicted_labels.append(lab)
             predicted_cat.append(categories[lab])
 
-        return predicted_cat
+        return predicted_cat  
 
-    def store_data_prediction(self, msg):  
-        
-        if (self.counter< (self.sample_slice)):
-            self.counter+= 1
-            self.sampler.append(msg)
-        else:
-            row_ampl= [np.mean(np.abs(self.sampler), axis= 0)]
-            temp_data_fft = np.abs(fft(self.sampler).real)
-            data_fft= [temp_data_fft[0]]
-               
-            i= self.freq_interested
-            j= 1
-            slice_y= []
-            start_index= 1
-        
-            while (i< len (temp_data_fft) and j <= self.freq_band):
-                slice_y.append(i-1)
-                i+= self.freq_interested
-                j+= 1 
+    # The callback for when the client receives a CONNACK response from the server.
+    
+    def on_connect(client, userdata, flags, rc):
+        print("Connected with result code "+str(rc))
 
-            for index in slice_y:
-                temp_mean= temp_data_fft [start_index:index]
-                data_fft.append(np.mean(temp_mean, axis= 0))
-                start_index= index
-            
-            data_fft.append(row_ampl)
-            self.sampler.clear()
-            self.counter= 0
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    client.subscribe("test")
 
-        data_fft= pd.DataFrame(data_fft).T
+# The callback for when a PUBLISH message is received from the server.
+    def on_message(self, client, userdata, msg):
+        data_fft= pd.DataFrame(msg).T
         data_fft.columns= self.predictors          
         self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
         #Storage max 10 min e.g. 600 rows of 1 second each
         if (self.data_out.shape[0]> 600):
-            self.data_out = self.data_out.iloc[1: , :] 
-        
-        pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
-        return
-
-    def real_time_pred(self):
+            self.data_out = self.data_out.iloc[1: , :]           
 
         #Loading model
         print("Loading pre-trained model")
         loaded_model = self.load_model()
        
         # Select here how many rows do you need "self.data_out.iloc[0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)    
-        predict_data= pickle.load(open(self.folder_data + "data.pickle", 'rb')) 
-        predict_data= predict_data [0:60]  
+        predict_data= self.data_out [0:60]   
 
-        time.sleep(3)
         self.predict_model(loaded_model, predict_data, self.activities)
-        return
 
+        print(f"topic = {msg.topic}, payload = {msg.payload}")
+
+    # Client callback that is called when the client successfully connects to the broker.
+    client.on_connect = on_connect
+    # Client callback that is called when a message within the subscribed topics is published.
+    client.on_message = on_message
+
+    client.connect("84.238.56.157", 1883, 60)
+
+    # Blocking call that processes network traffic, dispatches callbacks and handles reconnecting.
+    # Other loop*() functions are available that give a threaded interface and a manual interface.
+    client.loop_forever()
