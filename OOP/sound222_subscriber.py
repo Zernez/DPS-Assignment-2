@@ -6,6 +6,9 @@ prediction_obj= predict()
 train_obj= training()
 # Select True if you want to train a model
 training_selector= False
+counter= 0
+train_activity_level= 60000
+activity= ''
 
 # The callback for when the client receives a CONNACK response from the server.
     
@@ -21,7 +24,13 @@ def on_message(client, userdata, msg):
     if (training_selector== False):
         prediction_obj.store_data_prediction(msg)
     else:
-        train_obj.store_data_train(msg)        
+        if (counter>= train_activity_level or counter== 0):
+            activity = input('Insert the name of THE activity for labeling or input \'x\' for exit.\n')
+            if (activity== 'x'):
+                quit()
+            counter= 0
+        train_obj.store_data_train(msg,activity)
+        counter+= 1         
 #    print(f"topic = {msg.topic}, payload = {msg.payload}")
 
 client = mqtt.Client()

@@ -88,7 +88,7 @@ class training:
         
         return train_data
 
-    def store_data_train(self, msg):  
+    def store_data_train(self, msg, activity):  
         
         if (self.counter< (self.sample_slice)):
             self.counter+= 1
@@ -118,7 +118,8 @@ class training:
             self.counter= 0
 
             data_fft= pd.DataFrame(data_fft).T
-            data_fft.columns= self.predictors          
+            data_fft.columns= self.predictors
+            data_fft ["activity"]= activity          
             self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
         #Storage max 10 min e.g. 600 rows of 1 second each
@@ -128,12 +129,9 @@ class training:
         pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
         return 
 
-    def fetch_train_dataset_from_phidget(self, activity, lenght):
-        # Select here how many rows do you need "data.iloc[0:<How_many_row do you want>]" (e.g. 1 second is 1 row, max 600 rows)  
-        train_data= pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
-        data= train_data.tail(lenght) 
-        data ["activity"]= activity     
-        return data
+    def fetch_train_dataset_from_phidget(self):
+        train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))   
+        return train_data
 
     def create_model(self, data):
         # build model

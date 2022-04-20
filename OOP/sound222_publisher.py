@@ -13,14 +13,7 @@ import numpy as np
 
 def onVoltageRatioChange(self, voltageRatio):
 
-	if (training== False):
-		client.publish("test", voltageRatio)
-	else:
-		if (counter> training_sample_rate):
-			print ("Send data for train one activity done")
-			quit()
-		else:
-			client.publish("test", voltageRatio)	
+	client.publish("test", voltageRatio)	
 #	print("VoltageRatio: " + str(voltageRatio))
 
 def onAttach(self):
@@ -63,12 +56,6 @@ def main(self):
 			print(f"message with ID {message_id} published")
 
 		global client
-		global counter
-		global training
-		global training_sample_rate
-		training_sample_rate= 60000
-		training= False
-		counter= 1
 
 		client = mqtt.Client()
 		# Client callback that is called when the client successfully connects to the broker.
