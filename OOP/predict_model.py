@@ -64,7 +64,7 @@ class predict:
                 data_fft.append(np.mean(temp_mean, axis= 0))
                 start_index= index
             
-            data_fft.append(row_ampl)
+            data_fft.append(row_ampl[0])
             self.sampler.clear()
             self.counter= 0
 
@@ -85,11 +85,13 @@ class predict:
         print("Loading pre-trained model")
         loaded_model = self.load_model()
        
-        # Select here how many rows do you need "self.data_out.iloc[0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)    
-        predict_data= pickle.load(open(self.folder_data + "data.pickle", 'rb')) 
-        predict_data= predict_data [0:60]  
-
+        # Select here how many rows do you need "predict_data [0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)
         time.sleep(3)
-        self.predict_model(loaded_model, predict_data, self.activities)
-        return
+
+        predict_data= pickle.load(open(self.folder_data + "data.pickle", 'rb')) 
+        predict_data= predict_data.tail(60)  
+        
+        prediction= self.predict_model(loaded_model, predict_data, self.activities)
+        
+        return prediction
 

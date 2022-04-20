@@ -113,13 +113,13 @@ class training:
                 data_fft.append(np.mean(temp_mean, axis= 0))
                 start_index= index
             
-            data_fft.append(row_ampl)
+            data_fft.append(row_ampl[0])
             self.sampler.clear()
             self.counter= 0
 
-        data_fft= pd.DataFrame(data_fft).T
-        data_fft.columns= self.predictors          
-        self.data_out= self.data_out.append(data_fft, ignore_index=True)
+            data_fft= pd.DataFrame(data_fft).T
+            data_fft.columns= self.predictors          
+            self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
         #Storage max 10 min e.g. 600 rows of 1 second each
         if (self.data_out.shape[0]> 600):
@@ -131,7 +131,7 @@ class training:
     def fetch_train_dataset_from_phidget(self, activity, lenght):
         # Select here how many rows do you need "data.iloc[0:<How_many_row do you want>]" (e.g. 1 second is 1 row, max 600 rows)  
         train_data= pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
-        data= train_data[0:lenght]
+        data= train_data.tail(lenght) 
         data ["activity"]= activity     
         return data
 
