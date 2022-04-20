@@ -24,8 +24,12 @@ class training:
     sample_rate= 1000
     sample_slice= sample_rate
     freq_band= 15
-    freq_interested= int(sample_slice/freq_band)  
+    freq_interested= int(sample_slice/freq_band)
 
+    counter_train= 0
+    train_activity_level= 60000
+    activity= ''
+      
     def fetch_train_dataset_from_wav(self):
         data_res= 44100
         freq_band= 15
@@ -88,8 +92,15 @@ class training:
         
         return train_data
 
-    def store_data_train(self, msg, activity):  
-        
+    def store_data_train(self, msg):
+
+        if (self.counter_train>= self.train_activity_level or self.counter_train== 0):
+            self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit.\n')
+            self.counter_train= 0
+            if (self.activity== 'x'):
+                quit()  
+            self.counter_train+= 1
+
         if (self.counter< (self.sample_slice)):
             self.counter+= 1
             self.sampler.append(msg)
@@ -119,10 +130,10 @@ class training:
 
             data_fft= pd.DataFrame(data_fft).T
             data_fft.columns= self.predictors
-            data_fft ["activity"]= activity          
+            data_fft ["activity"]= self.activity          
             self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
-        #Storage max 10 min e.g. 600 rows of 1 second each
+            #Storage max 10 min e.g. 600 rows of 1 second each
         if (self.data_out.shape[0]> 600):
             self.data_out = self.data_out.iloc[1: , :]
 
