@@ -92,16 +92,22 @@ class training:
         
         return train_data
 
-    def store_data_train(self, msg):
-
+    def store_data_train(self, msg):        
+        
         if (self.counter_train>= self.train_activity_level or self.counter_train== 0):
-            self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit.\n')
+            self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit or \'del\' for exit and delete train data\n')
             self.counter_train= 0
             if (self.activity== 'x'):
-                quit()  
-            self.counter_train+= 1
+                quit()
+            if (self.activity== 'del'):
+                empty= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
+                empty= pd.DataFrame()  
+                pickle.dump(empty,open(self.folder_data + "data.pickle", 'wb'))                
+                quit()    
+        
+        self.counter_train+= 1
 
-        if (self.counter< (self.sample_slice)):
+        if (self.sample_slice> self.counter):
             self.counter+= 1
             self.sampler.append(msg)
         else:
@@ -134,10 +140,13 @@ class training:
             self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
             #Storage max 10 min e.g. 600 rows of 1 second each
-        if (self.data_out.shape[0]> 600):
-            self.data_out = self.data_out.iloc[1: , :]
+            if (self.data_out.shape[0]> 600):
+                self.data_out = self.data_out.iloc[1: , :]
 
-        pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+            pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+            
+#            data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
+#            print (data)
         return 
 
     def fetch_train_dataset_from_phidget(self):
