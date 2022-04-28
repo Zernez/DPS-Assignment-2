@@ -2,13 +2,15 @@ from __future__ import division,print_function, absolute_import
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 import os
 import pickle
 import pandas as pd
 from scipy.io import wavfile as wav
 from scipy.fftpack import fft
 import numpy as np
-import tensorflow as tf
 
 class training:
 
@@ -149,8 +151,21 @@ class training:
 #            print (data)
         return 
 
-    def fetch_train_dataset_from_phidget(self):
-        train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))   
+    def fetch_train_dataset_from_pickle(self):
+        train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
+        activities= {}
+        
+        for row in train_data:  
+            num= len (activities)
+            name= row["activity"]
+            if name not in activities.keys():
+                activities [num]= name
+
+        pickle.dump(activities,open(self.folder_data + "activity.pickle", 'wb'))
+        inv_map = {v: k for k, v in activities.items()}
+        for row in train_data:
+            row["activity"] = inv_map [row["activity"]]        
+
         return train_data
 
     def create_model(self, data):
