@@ -39,7 +39,7 @@ class predict:
 
         return predicted_cat
 
-    def store_data_prediction(self, msg):  
+    def store_data_prediction(self, msg, data_type):  
         
         if (self.counter< (self.sample_slice)):
             self.counter+= 1
@@ -68,15 +68,17 @@ class predict:
             self.sampler.clear()
             self.counter= 0
 
-        data_fft= pd.DataFrame(data_fft).T
-        data_fft.columns= self.predictors          
-        self.data_out= self.data_out.append(data_fft, ignore_index=True)
+            data_fft= pd.DataFrame(data_fft).T
+            data_fft.columns= self.predictors
+            shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+            data_fft_shim= data_fft.assign(shimmer_data.tail(1))                   
+            self.data_out= self.data_out.append(data_fft_shim, ignore_index=True)
 
-        #Storage max 10 min e.g. 600 rows of 1 second each
-        if (self.data_out.shape[0]> 600):
-            self.data_out = self.data_out.iloc[1: , :] 
+            #Storage max 10 min e.g. 600 rows of 1 second each
+            if (self.data_out.shape[0]> 600):
+                self.data_out = self.data_out.iloc[1: , :] 
         
-        pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+            pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
         return
 
     def real_time_pred(self):

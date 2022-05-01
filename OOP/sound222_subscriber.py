@@ -2,10 +2,12 @@ import paho.mqtt.client as mqtt
 from predict_model import predict 
 from train_model import training 
 
+# Select True if you want to train a model
+training_selector= False
+data_type= "sound"
+
 prediction_obj= predict()
 train_obj= training()
-# Select True if you want to train a model
-training_selector= True
 
 
 # The callback for when the client receives a CONNACK response from the server.
@@ -14,15 +16,15 @@ def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("test")
+    client.subscribe("sound")
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
 
-    if (training_selector== False):
-        prediction_obj.store_data_prediction(float(msg.payload))
+    if (training_selector== True):
+        train_obj.store_data_train(float(msg.payload), data_type)  
     else:
-        train_obj.store_data_train(float(msg.payload))       
+        prediction_obj.store_data_prediction(float(msg.payload), data_type)   
 #    print(f"topic = {msg.topic}, payload = {msg.payload}")
 
 client = mqtt.Client()

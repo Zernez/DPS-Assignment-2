@@ -1,39 +1,93 @@
-import time
+#!/usr/bin/python
+import sys, struct, serial
 import paho.mqtt.client as mqtt
-from serial import Serial
-from pyshimmer import ShimmerBluetooth, DEFAULT_BAUDRATE, DataPacket, EChannelType
 
+def wait_for_ack():
+   ddata = ""
+   ack = struct.pack('B', 0xff)
+   while ddata != ack:
+      ddata = ser.read(1)
+#      print "0x%02x" % ord(ddata[0])
+ 
+   return
 
-def handler(pkt: DataPacket) -> None:
-    cur_value = pkt[EChannelType.INTERNAL_ADC_13]
-    client.publish("shimmer", cur_value)	
-    print(f'Received new data point: {cur_value}')
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
 
+    # The callback for when a PUBLISH message is received from the server.
+def on_publish(client, userdata, message_id):
+    print(f"message with ID {message_id} published")
 
-if __name__ == '__main__':
-    serial = Serial('/dev/rfcomm42', DEFAULT_BAUDRATE)
-    shim_dev = ShimmerBluetooth(serial)
+device= "/dev/rfcomm0"
 
-    global client
+if len(device) < 2:
+   print ("no device specified")
+   print ("You need to specify the serial port of the device you wish to connect to")
+   print ("example:")
+   print ("   aAccel5Hz.py Com12")
+   print ("or")
+   print ("   aAccel5Hz.py /dev/rfcomm0")
+else:
+   ser = serial.Serial(device, 115200)
+   ser.flushInput()
+   print ("port opening, done.")
+# send the set sensors command
+   ser.write(struct.pack('BBBB', 0x08, 0x80, 0x00, 0x00))  #analogaccel
+   wait_for_ack()   
+   print ("sensor setting, done.")
+# send the set sampling rate command
+   ser.write(struct.pack('BBB', 0x05, 0x00, 0x19)) #5.12Hz (6400 (0x1900)). Has to be done like this for alignment reasons
+   wait_for_ack()
+   print ("sampling rate setting, done.")
+# send start streaming command
+   ser.write(struct.pack('B', 0x07))
+   wait_for_ack()
+   print ("start command sending, done.")
 
-    client = mqtt.Client()
-		# Client callback that is called when the client successfully connects to the broker.
-    client.on_connect = on_connect
-		# Client callback that is called when the client successfully publishes to the broker.
-    client.on_publish = on_publish
+# read incoming data
+   ddata = ""
+   numbytes = 0
+   framesize = 10 # 1byte packet type + 3byte timestamp + 3x2byte Analog Accel
+   
+   client = mqtt.Client()
+        # Client callback that is called when the client successfully connects to the broker.
+   client.on_connect = on_connect
+        # Client callback that is called when the client successfully publishes to the broker.
+   client.on_publish = on_publish
 
-		# Connect to the MQTT broker running in the localhost.
-    client.connect("localhost", 1883, 60)
+   client.connect("localhost", 1883, 60)
 
-    shim_dev.initialize()
+   print ("Packet Type,Timestamp,Analog Accel X,Analog Accel Y,Analog Accel Z")
+   try:
+      while True:
+         while numbytes < framesize:
+            ddata= str(ddata)
+            ddata += str(ser.read(framesize))
+            numbytes = len(ddata)
+         
+         if isinstance (ddata, str):
+             ddata = bytes(ddata,'utf-8')
+             
+         data = ddata[0:framesize]
+         ddata = ddata[framesize:]
+         numbytes = len(ddata)
 
-    dev_name = shim_dev.get_device_name()
-    print(f'My name is: {dev_name}')
+         (packettype) = struct.unpack('B', data[0:1])
+         (timestamp0, timestamp1, timestamp2) = struct.unpack('BBB', data[1:4])
+         (analogaccelx, analogaccely, analogaccelz) = struct.unpack('HHH', data[4:framesize])
 
-    shim_dev.add_stream_callback(handler)
+         timestamp = timestamp0 + timestamp1*256 + timestamp2*65536
 
-    shim_dev.start_streaming()
-    time.sleep(5.0)
-    shim_dev.stop_streaming()
-
-    shim_dev.shutdown()
+         print ("0x%02x,%5d,\t%4d,%4d,%4d" % (packettype[0], timestamp, analogaccelx, analogaccely, analogaccelz))
+         client.publish("shimmer", str(analogaccelx) + " " + str(analogaccely) + " " + str(analogaccelz))
+         
+   except KeyboardInterrupt:
+#send stop streaming command
+      ser.write(struct.pack('B', 0x20))
+      print
+      print ("stop command sent, waiting for ACK_COMMAND")
+      wait_for_ack()
+      print ("ACK_COMMAND received.")
+#close serial port
+      ser.close()
+      print ("All done")

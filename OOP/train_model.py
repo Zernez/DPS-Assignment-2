@@ -18,8 +18,14 @@ class training:
     activities= {}
     folder_data= "./data/"
     folder_audio= "./data/audio/"   
-    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
-    data_out= pd.DataFrame(columns= predictors) 
+    predictors_audio = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
+    predictors_shim = ["x", "y", "z"]
+    # Set data type!
+    data_type= "shimmer"
+    if (data_type== "shimmer"): 
+        data_out= pd.DataFrame(columns= predictors_shim) 
+    elif (data_type== "sound"): 
+        data_out= pd.DataFrame(columns= predictors_audio) 
 
     counter= 0
     sampler= []
@@ -30,6 +36,7 @@ class training:
 
     counter_train= 0
     train_activity_level= 60000
+    train_activity_level_shim= 600    
     activity= ''
       
     def fetch_train_dataset_from_wav(self):
@@ -94,58 +101,110 @@ class training:
         
         return train_data
 
-    def store_data_train(self, msg):        
-        
-        if (self.counter_train>= self.train_activity_level or self.counter_train== 0):
-            self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit or \'del\' for exit and delete train data\n')
-            self.counter_train= 0
-            if (self.activity== 'x'):
-                quit()
-            if (self.activity== 'del'):
-                empty= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
-                empty= pd.DataFrame()  
-                pickle.dump(empty,open(self.folder_data + "data.pickle", 'wb'))                
-                quit()    
-        
-        self.counter_train+= 1
+    def store_data_train(self, msg, data_type):
 
-        if (self.sample_slice> self.counter):
-            self.counter+= 1
-            self.sampler.append(msg)
-        else:
-            row_ampl= [np.mean(np.abs(self.sampler), axis= 0)]
-            temp_data_fft = np.abs(fft(self.sampler).real)
-            data_fft= [temp_data_fft[0]]
-               
-            i= self.freq_interested
-            j= 1
-            slice_y= []
-            start_index= 1
-        
-            while (i< len (temp_data_fft) and j <= self.freq_band):
-                slice_y.append(i-1)
-                i+= self.freq_interested
-                j+= 1 
-
-            for index in slice_y:
-                temp_mean= temp_data_fft [start_index:index]
-                data_fft.append(np.mean(temp_mean, axis= 0))
-                start_index= index
+        if (data_type== "shimmer"):
             
-            data_fft.append(row_ampl[0])
-            self.sampler.clear()
-            self.counter= 0
+            if (self.counter_train>= self.train_activity_level_shim or self.counter_train== 0):
+                self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit or \'del\' for exit and delete train data\n')
+                self.counter_train= 0
+                if (self.activity== 'x'):
+                    self.counter_train= 0
+                    quit()
+                if (self.activity== 'del'):
+                    empty= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
+                    empty= pd.DataFrame()  
+                    pickle.dump(empty,open(self.folder_data + "data.pickle", 'wb'))
+                    self.counter_train= 0                
+                    quit()    
+            
+            self.counter_train+= 1
 
-            data_fft= pd.DataFrame(data_fft).T
-            data_fft.columns= self.predictors
-            data_fft ["activity"]= self.activity          
-            self.data_out= self.data_out.append(data_fft, ignore_index=True)
+            data_acc= []
+            temp= ""
+            msg= str(msg)
+            msg = msg.replace("b", '')
+            msg = msg.replace("'", '')
+            count= len(msg)
 
-            #Storage max 10 min e.g. 600 rows of 1 second each
-            if (self.data_out.shape[0]> 600):
+            for char in msg:               
+                temp+= char
+                
+                if (" " in char):
+                    data_acc.append(int(temp))  
+                    temp= ""              
+                
+                count-=1                    
+                
+                if count== 0:
+                    data_acc.append(int(temp))
+                    temp= ""
+                    continue
+
+            data_acc= pd.DataFrame(data_acc).T
+            data_acc.columns= self.predictors_shim           
+            data_acc ["activity"]= self.activity
+
+            self.data_out= self.data_out.append(data_acc, ignore_index=True)            
+
+            if (self.data_out.shape[0]> 600000):
                 self.data_out = self.data_out.iloc[1: , :]
 
-            pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+            pickle.dump(self.data_out,open(self.folder_data + "shimmer.pickle", 'wb'))
+
+        elif (data_type== "sound"):
+            if (self.counter_train>= self.train_activity_level or self.counter_train== 0):
+                self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit or \'del\' for exit and delete train data\n')
+                self.counter_train= 0
+                if (self.activity== 'x'):
+                    self.counter_train= 0
+                    quit()
+                if (self.activity== 'del'):
+                    empty= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
+                    empty= pd.DataFrame()  
+                    pickle.dump(empty,open(self.folder_data + "data.pickle", 'wb'))   
+                    self.counter_train= 0             
+                    quit()    
+            
+            self.counter_train+= 1
+
+            if (self.sample_slice> self.counter):
+                self.counter+= 1
+                self.sampler.append(msg)
+            else:
+                row_ampl= [np.mean(np.abs(self.sampler), axis= 0)]
+                temp_data_fft = np.abs(fft(self.sampler).real)
+                data_fft= [temp_data_fft[0]]
+                
+                i= self.freq_interested
+                j= 1
+                slice_y= []
+                start_index= 1
+            
+                while (i< len (temp_data_fft) and j <= self.freq_band):
+                    slice_y.append(i-1)
+                    i+= self.freq_interested
+                    j+= 1 
+
+                for index in slice_y:
+                    temp_mean= temp_data_fft [start_index:index]
+                    data_fft.append(np.mean(temp_mean, axis= 0))
+                    start_index= index
+                
+                data_fft.append(row_ampl[0])
+                self.sampler.clear()
+                self.counter= 0
+
+                data_fft= pd.DataFrame(data_fft).T
+                data_fft.columns= self.predictors_audio
+                data_fft ["activity"]= self.activity          
+                self.data_out= self.data_out.append(data_fft, ignore_index=True)
+
+                #Storage max 10 min e.g. 600 rows of 1 second each
+                if (self.data_out.shape[0]> 600):
+                    self.data_out = self.data_out.iloc[1: , :]
+
+                pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
             
 #            data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
 #            print (data)
