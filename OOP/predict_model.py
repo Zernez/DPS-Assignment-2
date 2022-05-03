@@ -88,8 +88,6 @@ class predict:
         loaded_model = self.load_model()
        
         # Select here how many rows do you need "predict_data [0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)
-        time.sleep(1)
-
         predict_data= pickle.load(open(self.folder_data + "data.pickle", 'rb')) 
         predict_data= predict_data.tail(60)  
         

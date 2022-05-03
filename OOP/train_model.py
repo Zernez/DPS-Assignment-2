@@ -3,6 +3,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 import tensorflow as tf
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import os
@@ -11,6 +12,7 @@ import pandas as pd
 from scipy.io import wavfile as wav
 from scipy.fftpack import fft
 import numpy as np
+from predict_model import predict
 
 class training:
 
@@ -212,23 +214,44 @@ class training:
 
     def fetch_train_dataset_from_pickle(self):
         train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
-        activities= {}
+        #activities= {}
         
         for row in train_data:  
-            num= len (activities)
+            num= len (self.activities)
             name= row["activity"]
-            if name not in activities.keys():
-                activities [num]= name
+            if name not in self.activities.keys():
+                self.activities [num]= name
 
-        pickle.dump(activities,open(self.folder_data + "activity.pickle", 'wb'))
-        inv_map = {v: k for k, v in activities.items()}
+        pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
+        inv_map = {v: k for k, v in self.activities.items()}
         for row in train_data:
             row["activity"] = inv_map [row["activity"]]        
 
         return train_data
 
-    def create_model(self, data):
-        # build model
+    def fetch_shimmer_data_from_pickle(self):
+        shimmer_data = pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+        #inv_map = {v: k for k, v in activities.items()}
+        #for row in shimmer_data:
+        #    row["activity"] = inv_map[row["activity"]]
+
+        return shimmer_data
+
+    def combine_data(self):
+        sound_data = self.fetch_train_dataset_from_pickle()
+        shimmer_data = self.fetch_shimmer_data_from_pickle()
+
+        data_frame = []
+        for (s, h) in zip(sound_data, shimmer_data):
+            data_frame.append([])
+            data_frame[-1].extend(s)
+            data_frame[-1].extend(h)
+
+        return data_frame
+
+
+    def create_model(self):
+        #1 build model
         model = tf.keras.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28)),
         # tf.keras.layers.Flatten(input_shape(11,100)),
@@ -241,10 +264,24 @@ class training:
                       loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                       metrics=['accuracy'])
 
+        my_data = np.asarray(self.combine_data())
+        #my_data = np.asarray(self.fetch_train_dataset_from_pickle())
+        # my_data = fetch_train_dataset_from_wav()
+
+
+        (tra_images, tra_labels) = my_data[:, :-1].astype('float32'), my_data[:, -1].astype(int)
+        train_images, test_images, train_labels, test_labels = train_test_split(tra_images, tra_labels, test_size=0.2)
+
         model.fit(train_images, train_labels, epochs=10)
 
         test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
 
         print('\nTest accuracy:', test_acc)
+
+        pr = predict()
+        categories = self.activities
+        prediction = pr.predict_model(model, test_images, categories)
+        print("Confusion Matrix:")
+        print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
         pickle.dump(model,open(self.folder_data + "model.pickle", 'wb'))
         return model
