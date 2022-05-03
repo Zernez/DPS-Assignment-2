@@ -285,7 +285,7 @@ class training:
         print(tra_label)
 
 
-        (tra_images, tra_labels) = tra_data.astype('float32'), tra_label.astype(int)
+        (tra_data, tra_label) = tra_data.astype('float32'), tra_label.astype(int)
         train_data, test_data, train_labels, test_labels = train_test_split(tra_data, tra_label, test_size=0.2)
 
         model.fit(train_data, train_labels, epochs=10)
