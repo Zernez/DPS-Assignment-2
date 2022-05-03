@@ -214,9 +214,11 @@ class training:
 
     def fetch_train_dataset_from_pickle(self):
         train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
-        #activities= {}
+        activities= {}
         
-        for row in train_data:  
+        train_data = train_data.reset_index()
+
+        for index,row in train_data.iterrows():  
             num= len (self.activities)
             name= row["activity"]
             if name not in self.activities.keys():
@@ -224,7 +226,7 @@ class training:
 
         pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
         inv_map = {v: k for k, v in self.activities.items()}
-        for row in train_data:
+        for index, row in train_data.iterrows():
             row["activity"] = inv_map [row["activity"]]        
 
         return train_data
@@ -241,12 +243,23 @@ class training:
         sound_data = self.fetch_train_dataset_from_pickle()
         shimmer_data = self.fetch_shimmer_data_from_pickle()
 
-        data_frame = []
-        for (s, h) in zip(sound_data, shimmer_data):
-            data_frame.append([])
-            data_frame[-1].extend(s)
-            data_frame[-1].extend(h)
+        sound_data = sound_data.drop(sound_data[sound_data.activity == 'computering'].index)
+        sound_data.loc[sound_data['activity'] == 'computering_2', 'activity'] = 'computering'
 
+        acts = sound_data['activity'].unique()
+        shimmer = pd.DataFrame()
+        for act in acts:
+            num = sound_data[sound_data.activity == act].shape[0]
+            new_shimmer = shimmer_data[shimmer_data.activity == act].head(num)
+            shimmer = pd.concat([shimmer, new_shimmer], axis=0)
+            
+
+        shimmer = shimmer.reset_index()
+        sound_data = sound_data.reset_index()
+        data_frame = pd.concat([sound_data, shimmer], axis=1)
+        data_frame = data_frame.drop(['index'], axis=1)
+        data_frame = data_frame.iloc[:, :-1]
+        print(data_frame)
         return data_frame
 
 
@@ -263,25 +276,28 @@ class training:
         model.compile(optimizer='adam',
                       loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                       metrics=['accuracy'])
+        df = self.combine_data()
 
-        my_data = np.asarray(self.combine_data())
-        #my_data = np.asarray(self.fetch_train_dataset_from_pickle())
-        # my_data = fetch_train_dataset_from_wav()
+        tra_data = np.asarray(df.drop(['activity'], axis=1))
+        tra_label = np.asarray(df['activity'])
+
+        print(tra_data)
+        print(tra_label)
 
 
-        (tra_images, tra_labels) = my_data[:, :-1].astype('float32'), my_data[:, -1].astype(int)
-        train_images, test_images, train_labels, test_labels = train_test_split(tra_images, tra_labels, test_size=0.2)
+        (tra_images, tra_labels) = tra_data.astype('float32'), tra_label.astype(int)
+        train_data, test_data, train_labels, test_labels = train_test_split(tra_data, tra_label, test_size=0.2)
 
-        model.fit(train_images, train_labels, epochs=10)
+        model.fit(train_data, train_labels, epochs=10)
 
-        test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
+        test_loss, test_acc = model.evaluate(test_data, test_labels, verbose=2)
 
         print('\nTest accuracy:', test_acc)
 
-        pr = predict()
-        categories = self.activities
-        prediction = pr.predict_model(model, test_images, categories)
-        print("Confusion Matrix:")
-        print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
-        pickle.dump(model,open(self.folder_data + "model.pickle", 'wb'))
+        # pr = predict()
+        # categories = self.activities
+        # prediction = pr.predict_model(model, test_images, categories)
+        # print("Confusion Matrix:")
+        # print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
+        # pickle.dump(model,open(self.folder_data + "model.pickle", 'wb'))
         return model
