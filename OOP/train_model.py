@@ -233,18 +233,21 @@ class training:
 
     def fetch_shimmer_data_from_pickle(self):
         shimmer_data = pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
-        #inv_map = {v: k for k, v in activities.items()}
+        inv_map = {v: k for k, v in self.activities.items()}
         #for row in shimmer_data:
         #    row["activity"] = inv_map[row["activity"]]
-
+        for index, row in shimmer_data.iterrows():
+           shimmer_data.at[index, 'activity'] = inv_map [row["activity"]]
         return shimmer_data
 
     def combine_data(self):
         sound_data = self.fetch_train_dataset_from_pickle()
         shimmer_data = self.fetch_shimmer_data_from_pickle()
 
-        sound_data = sound_data.drop(sound_data[sound_data.activity == 'computering'].index)
-        sound_data.loc[sound_data['activity'] == 'computering_2', 'activity'] = 'computering'
+        sound_data = sound_data.drop(sound_data[sound_data.activity == 6].index)
+        sound_data.loc[sound_data['activity'] == 7, 'activity'] = 6
+        print(sound_data)
+        print(shimmer_data)
 
         acts = sound_data['activity'].unique()
         shimmer = pd.DataFrame()
@@ -264,8 +267,8 @@ class training:
 
 
     def create_model(self):
-        tr_data = self.fetch_train_dataset_from_pickle()
-        print(tr_data)
+        # tr_data = self.fetch_train_dataset_from_pickle()
+        # print(tr_data)
 
         #1 build model
         model = tf.keras.Sequential([
