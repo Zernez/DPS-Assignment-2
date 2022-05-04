@@ -214,20 +214,20 @@ class training:
 
     def fetch_train_dataset_from_pickle(self):
         train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
-        activities= {}
-        
+
         train_data = train_data.reset_index()
 
         for index,row in train_data.iterrows():  
             num= len (self.activities)
             name= row["activity"]
-            if name not in self.activities.keys():
+            if name not in self.activities.values():
                 self.activities [num]= name
 
         pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
         inv_map = {v: k for k, v in self.activities.items()}
+
         for index, row in train_data.iterrows():
-            row["activity"] = inv_map [row["activity"]]        
+           train_data.at[index, 'activity'] = inv_map [row["activity"]]
 
         return train_data
 
@@ -264,10 +264,12 @@ class training:
 
 
     def create_model(self):
+        tr_data = self.fetch_train_dataset_from_pickle()
+        print(tr_data)
+
         #1 build model
         model = tf.keras.Sequential([
-        tf.keras.layers.Flatten(input_shape=(28, 28)),
-        # tf.keras.layers.Flatten(input_shape(11,100)),
+        tf.keras.layers.Flatten(input_shape=(21,100)),
         tf.keras.layers.Dense(128, activation='relu'),
         #tf.keras.layers.Dense(10, activation='relu'),
         tf.keras.layers.Dense(10)
@@ -281,8 +283,8 @@ class training:
         tra_data = np.asarray(df.drop(['activity'], axis=1))
         tra_label = np.asarray(df['activity'])
 
-        print(tra_data)
-        print(tra_label)
+        #print(tra_data)
+        #print(tra_label)
 
 
         (tra_data, tra_label) = tra_data.astype('float32'), tra_label.astype(int)
