@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from numpy.fft import fft
 import time
+import joblib
 
 class predict:
 
@@ -19,10 +20,11 @@ class predict:
     sample_rate= 1000
     sample_slice= sample_rate
     freq_band= 15
-    freq_interested= int(sample_slice/freq_band)  
+    freq_interested= int(sample_slice/freq_band)
+
 
     def load_model(self):
-        model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
+        model= joblib.load(open(self.folder_data + "model.pickle", 'rb'))
         return model   
 
     def predict_model(self, model, test_data, categories):

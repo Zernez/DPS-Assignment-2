@@ -10,16 +10,18 @@ folder_data= "./data/"
 
 train_wav= False
 
+inp = input("Choose Train Option: 1-Train 2-Predict\n")
+
+if(inp == "1"):
+    train_wav = True
+
 # "train_wav= False" when you want to train the model with phidget data so use "sound222_FFT_only_training.py" for produce data
-if train_wav== False:
-    #training_data= pickle.load(open(folder_data + "shimmer.pickle", 'rb'))
-    print("something")
+if train_wav== True:
     tr = training()
     tr.create_model()
 
+# train_wav= True when you want to predict
 else:
-   #training_data= train_obj.fetch_train_dataset_from_wav()
-   print("something else")
    pr = predict()
 
    def do_predictions():

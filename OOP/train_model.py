@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.io import wavfile as wav
 from scipy.fftpack import fft
 import numpy as np
+import joblib
 from predict_model import predict
 
 class training:
@@ -265,6 +266,9 @@ class training:
         print(data_frame)
         return data_frame
 
+    def save_model(self, model, filepath):
+        joblib.dump(model, open(self.folder_data + filepath, 'wb'))
+
 
     def create_model(self):
         # tr_data = self.fetch_train_dataset_from_pickle()
@@ -272,7 +276,7 @@ class training:
 
         #1 build model
         model = tf.keras.Sequential([
-        tf.keras.layers.Flatten(input_shape=(21,100)),
+        #tf.keras.layers.Flatten(input_shape=(21,100)),
         tf.keras.layers.Dense(128, activation='relu'),
         #tf.keras.layers.Dense(10, activation='relu'),
         tf.keras.layers.Dense(10)
@@ -304,5 +308,6 @@ class training:
         # prediction = pr.predict_model(model, test_images, categories)
         # print("Confusion Matrix:")
         # print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
-        # pickle.dump(model,open(self.folder_data + "model.pickle", 'wb'))
+        self.save_model(model, "model.pickle")
+
         return model
