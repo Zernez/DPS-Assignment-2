@@ -6,11 +6,13 @@ import numpy as np
 from numpy.fft import fft
 import time
 import joblib
-
+import time
+import os
+# tf.compat.v1.disable_eager_execution()
 class predict:
 
     #To hard-code activities here   
-    activities= ["Computering","Vacuum_cleaning","Cooking"]    
+    activities= {}
     folder_data= "./data/"    
     predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
     data_out= pd.DataFrame(columns= predictors) 
@@ -21,25 +23,25 @@ class predict:
     sample_slice= sample_rate
     freq_band= 15
     freq_interested= int(sample_slice/freq_band)
-
-
+    model = None
     def load_model(self):
         model= joblib.load(open(self.folder_data + "model.pickle", 'rb'))
+        self.model = model
         return model   
 
     def predict_model(self, model, test_data, categories):
         probability_model = tf.keras.Sequential([model,
                                              tf.keras.layers.Softmax()])
-        predictions = probability_model.predict(test_data)
-
+        predictions = probability_model.predict(np.asarray(test_data).astype('float32'))
         predicted_labels = []
         predicted_cat = []
         for pred in predictions:
             lab = np.argmax(pred)
             predicted_labels.append(lab)
             predicted_cat.append(categories[lab])
-
-        return predicted_cat
+        pre = max(set(predicted_cat),key=predicted_cat.count)
+        # print(pre)
+        return pre
 
     def store_data_prediction(self, msg, data_type):  
         
@@ -72,28 +74,31 @@ class predict:
 
             data_fft= pd.DataFrame(data_fft).T
             data_fft.columns= self.predictors
-            shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
-            data_fft_shim= data_fft.assign(shimmer_data.tail(1))                   
-            self.data_out= self.data_out.append(data_fft_shim, ignore_index=True)
+            # shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+            # data_fft_shim= data_fft.assign(shimmer_data.tail(1))                   
+            self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
             #Storage max 10 min e.g. 600 rows of 1 second each
-            if (self.data_out.shape[0]> 600):
+            if (self.data_out.shape[0]> 10):
                 self.data_out = self.data_out.iloc[1: , :] 
-        
-            pickle.dump(self.data_out,open(self.folder_data + "data.pickle", 'wb'))
+            print(self.data_out)
+            pickle.dump(self.data_out,open(self.folder_data + "real_time.pickle", 'wb'))
         return
 
     def real_time_pred(self):
 
         #Loading model
-        print("Loading pre-trained model")
-        loaded_model = self.load_model()
+        # print("Loading pre-trained model")
+        # loaded_model = self.load_model()
        
         # Select here how many rows do you need "predict_data [0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)
-        predict_data= pickle.load(open(self.folder_data + "data.pickle", 'rb')) 
-        predict_data= predict_data.tail(60)  
         
-        prediction= self.predict_model(loaded_model, predict_data, self.activities)
-        
+        print(time.ctime(os.path.getmtime(self.folder_data+"real_time.pickle")),' : ', end='')
+        predict_data= pickle.load(open(self.folder_data + "real_time.pickle", 'rb')) 
+        # predict_data= predict_data.tail(60)
+        # print(predict_data)
+        self.activities = pickle.load(open(self.folder_data + "activity.pickle", 'rb'))
+        prediction= self.predict_model(self.model, predict_data, self.activities)
+        # prediction = 1
         return prediction
 

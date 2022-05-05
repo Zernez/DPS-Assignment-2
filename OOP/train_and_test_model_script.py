@@ -18,19 +18,23 @@ if(inp == "1"):
 # "train_wav= False" when you want to train the model with phidget data so use "sound222_FFT_only_training.py" for produce data
 if train_wav== True:
     tr = training()
+    # for i in range(0, 6):
+    #     tr.create_model(i)
     tr.create_model()
-
 # train_wav= True when you want to predict
 else:
    pr = predict()
+   pr.load_model()
+   # pr.real_time_pred()
 
    def do_predictions():
        threading.Timer(10.0, do_predictions).start() # do it every 10 seconds
-       pr.real_time_pred()
+       label = pr.real_time_pred()
+       print('now you are doing', label)
 
    do_predictions()
 
-pd.set_option('display.max_rows', None)
+# pd.set_option('display.max_rows', None)
 
 #print (training_data)
 

@@ -214,9 +214,24 @@ class training:
         return 
 
     def fetch_train_dataset_from_pickle(self):
+        # train_data= pickle.load(open(self.folder_data + "audio_new.pickle", 'rb'))
+        # train_data = train_data.reset_index()
         train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
+        # print(train_data)
+        # # train_data = train_data.reset_index()
 
+        train_data = train_data.drop(train_data[train_data.activity == 'computering'].index)
+        train_data.loc[train_data['activity'] == 'computering_2', 'activity'] = 'computering'
+
+        train_data = train_data.drop(train_data[train_data.activity == 'music_low_activity'].index)
+        train_data = train_data.drop(train_data[train_data.activity == 'low_activity'].index)
+        train_data = train_data.drop(train_data[train_data.activity == 'watch_tv'].index)
+        train_data = train_data.drop(train_data[train_data.activity == 'computering'].index)
+        # train_data = train_data.drop(train_data[train_data.activity == 'silence'].index)
         train_data = train_data.reset_index()
+        # # train_data = train_data.reset_index()
+        # print(train_data)
+        # pickle.dump(train_data,open(self.folder_data + "audio_new.pickle", 'wb'))
 
         for index,row in train_data.iterrows():  
             num= len (self.activities)
@@ -224,12 +239,12 @@ class training:
             if name not in self.activities.values():
                 self.activities [num]= name
 
-        pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
         inv_map = {v: k for k, v in self.activities.items()}
 
         for index, row in train_data.iterrows():
            train_data.at[index, 'activity'] = inv_map [row["activity"]]
-
+        # print(self.activities)
+        # pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
         return train_data
 
     def fetch_shimmer_data_from_pickle(self):
@@ -243,43 +258,31 @@ class training:
 
     def combine_data(self):
         sound_data = self.fetch_train_dataset_from_pickle()
-        shimmer_data = self.fetch_shimmer_data_from_pickle()
-
-        sound_data = sound_data.drop(sound_data[sound_data.activity == 6].index)
-        sound_data.loc[sound_data['activity'] == 7, 'activity'] = 6
-        print(sound_data)
-        print(shimmer_data)
-
-        acts = sound_data['activity'].unique()
-        shimmer = pd.DataFrame()
-        for act in acts:
-            num = sound_data[sound_data.activity == act].shape[0]
-            new_shimmer = shimmer_data[shimmer_data.activity == act].head(num)
-            shimmer = pd.concat([shimmer, new_shimmer], axis=0)
-            
-
-        shimmer = shimmer.reset_index()
-        sound_data = sound_data.reset_index()
-        data_frame = pd.concat([sound_data, shimmer], axis=1)
-        data_frame = data_frame.drop(['index'], axis=1)
-        data_frame = data_frame.iloc[:, :-1]
-        print(data_frame)
-        return data_frame
+        
+        return sound_data
 
     def save_model(self, model, filepath):
         joblib.dump(model, open(self.folder_data + filepath, 'wb'))
 
 
     def create_model(self):
-        # tr_data = self.fetch_train_dataset_from_pickle()
-        # print(tr_data)
+        # df = self.fetch_train_dataset_from_pickle()
+        # df = df.drop(df[df.activity == 6].index)
+        
+        # df.loc[df['activity'] == 7, 'activity'] = 6
+        # # print(tr_data)
+        
+        # df = df.drop(df[df.activity == 3].index)
+        # df = df.drop(df[df.activity == 5].index)
 
+        # df.loc[df['activity'] == 4, 'activity'] = 3
+        # df.loc[df['activity'] == 5, 'activity'] = 3
         #1 build model
         model = tf.keras.Sequential([
         #tf.keras.layers.Flatten(input_shape=(21,100)),
         tf.keras.layers.Dense(128, activation='relu'),
         #tf.keras.layers.Dense(10, activation='relu'),
-        tf.keras.layers.Dense(10)
+        tf.keras.layers.Dense(20)
         ])
 
         model.compile(optimizer='adam',
@@ -287,20 +290,22 @@ class training:
                       metrics=['accuracy'])
         df = self.combine_data()
 
-        tra_data = np.asarray(df.drop(['activity'], axis=1))
+        # print(df)
+
+        tra_data = np.asarray(df.drop(['activity','index'], axis=1))
         tra_label = np.asarray(df['activity'])
 
         #print(tra_data)
         #print(tra_label)
 
-
         (tra_data, tra_label) = tra_data.astype('float32'), tra_label.astype(int)
         train_data, test_data, train_labels, test_labels = train_test_split(tra_data, tra_label, test_size=0.2)
 
-        model.fit(train_data, train_labels, epochs=10)
+        model.fit(train_data, train_labels, epochs=100)
 
         test_loss, test_acc = model.evaluate(test_data, test_labels, verbose=2)
 
+        # print(model.predict())
         print('\nTest accuracy:', test_acc)
 
         # pr = predict()
