@@ -9,7 +9,7 @@ import joblib
 import time
 import os
 import os.path
-from timer import Timer
+#from timer import Timer
 # tf.compat.v1.disable_eager_execution()
 
 class predict:
@@ -31,7 +31,7 @@ class predict:
     freq_interested= int(sample_slice/freq_band)
     model = None
     immutable= False
-    timing= Timer()
+#    timing= Timer()
 
     def load_model(self):
         self.model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
@@ -44,16 +44,13 @@ class predict:
         test_data = np.asarray(test_data).astype('float32')
         predictions = probability_model.predict(test_data)
         predicted_cat = []
-        print(predictions)
         for pred in predictions:
             lab = np.argmax(pred)
-            print(pred,lab)
             predicted_cat.append(categories[lab])
 
         pre = max(set(predicted_cat),key=predicted_cat.count)
-        # pre = predicted_cat[4]
-        # print(pre)
-        return pre
+
+        return predicted_cat
 
     def store_data_prediction(self, msg, data_type):  
         

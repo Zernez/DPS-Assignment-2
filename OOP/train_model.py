@@ -303,11 +303,12 @@ class training:
         # print(model.predict())
         print('\nTest accuracy:', test_acc)
 
-        # pr = predict()
-        # categories = self.activities
-        # prediction = pr.predict_model(model, test_images, categories)
-        # print("Confusion Matrix:")
-        # print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
+        pr = predict()
+        categories = self.activities
+        prediction = pr.predict_model(model, test_data, categories)
+
+        print("Confusion Matrix:")
+        print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
         pickle.dump(model, open('./data/model.pickle', 'wb'))
 
         return model
