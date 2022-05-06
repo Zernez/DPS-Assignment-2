@@ -9,7 +9,7 @@ import joblib
 import time
 import os
 import os.path
-#from timer import Timer
+from timeit import Timer
 # tf.compat.v1.disable_eager_execution()
 
 class predict:
@@ -17,21 +17,24 @@ class predict:
     #To hard-code activities here   
     activities= {}
     folder_data= "./data/"    
-    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15","average_amplitude"]
+    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","average_amplitude"]
     predictors_shim= ["x", "y", "z"]
     pred_shim= ""
     trigger_shim_treshold= 500
     data_out= pd.DataFrame(columns= predictors) 
 
+
     counter= 0
     sampler= []
     sample_rate= 1000
+    duration= 1
+    N= sample_rate*duration
     sample_slice= sample_rate
-    freq_band= 15
+    freq_band= 10
     freq_interested= int(sample_slice/freq_band)
     model = None
     immutable= False
-#    timing= Timer()
+    timing= Timer()
 
     def load_model(self):
         self.model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
@@ -86,10 +89,10 @@ class predict:
                 data_fft= pd.DataFrame(data_fft).T
 
                 data_fft.columns= self.predictors
-                sd = data_fft.reset_index(drop=True)
-                shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
-                sh = shimmer_data.tail(1).reset_index(drop=True)
-                data_fft_shim= pd.concat([sd, sh], axis=1)
+#                sd = data_fft.reset_index(drop=True)
+#                shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+#                sh = shimmer_data.tail(1).reset_index(drop=True)
+#                data_fft_shim= pd.concat([sd, sh], axis=1)
                 # print(data_fft_shim)                   
                 self.data_out= self.data_out.append(data_fft, ignore_index=True)
 

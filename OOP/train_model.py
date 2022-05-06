@@ -261,29 +261,35 @@ class training:
 
 
     def create_model(self):
-        # df = self.fetch_train_dataset_from_pickle()
+        df = self.fetch_train_dataset_from_pickle()
         # df = df.drop(df[df.activity == 6].index)
         
-        # df.loc[df['activity'] == 7, 'activity'] = 6
-        # # print(tr_data)
+        #df.loc[df['activity'] == 7, 'activity'] = 6
+        #print(tr_data)
         
-        # df = df.drop(df[df.activity == 3].index)
-        # df = df.drop(df[df.activity == 5].index)
 
-        # df.loc[df['activity'] == 4, 'activity'] = 3
-        # df.loc[df['activity'] == 5, 'activity'] = 3
+#        df= df.drop("freq_2", axis=1)
+#        df= df.drop("freq_1", axis=1)         
+#        df = df.drop(df[df.activity == 7].index)
+#        df = df.drop(df[df.activity == 5].index)
+#        df = df.drop(df[df.activity == 4].index)
+
+        print(df)
+
+        df.loc[df['activity'] == 6, 'activity'] = 4
+#        df.loc[df['activity'] == 5, 'activity'] = 3
         #1 build model
         model = tf.keras.Sequential([
         #tf.keras.layers.Flatten(input_shape=(21,100)),
         tf.keras.layers.Dense(128, activation='relu'),
         #tf.keras.layers.Dense(10, activation='relu'),
-        tf.keras.layers.Dense(100)
+        tf.keras.layers.Dense(8)
         ])
 
         model.compile(optimizer='adam',
                       loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                       metrics=['accuracy'])
-        df = self.fetch_train_dataset_from_pickle()
+#        df = self.fetch_train_dataset_from_pickle()
 
         # print(df)
 
@@ -302,6 +308,8 @@ class training:
 
         # print(model.predict())
         print('\nTest accuracy:', test_acc)
+
+        pickle.dump(model, open('./data/model.pickle', 'wb'))
 
         pr = predict()
         categories = self.activities

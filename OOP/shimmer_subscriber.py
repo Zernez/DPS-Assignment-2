@@ -3,9 +3,10 @@ from predict_model import predict
 from train_model import training 
 import pandas as pd
 import pickle
+from timeit import Timer
 
 # Select True if you want to train a model
-training_selector= True
+training_selector= False
 folder_data= "./data/"
 data_type= "shimmer"
 max_pre_alarm= 6
@@ -27,9 +28,9 @@ def on_message(client, userdata, msg):
 
     if (training_selector== True):
         train_obj.store_data_train(msg.payload, data_type)
-    else:
-        if ((prediction_obj.timing> max_pre_alarm or not prediction_obj.timing.is_alive()) and prediction_obj.immutable== False):
-            prediction_obj.store_data_prediction(msg.payload, data_type)
+#    else:
+#        if ((prediction_obj.timing> max_pre_alarm or not prediction_obj.timing.is_alive()) and prediction_obj.immutable== False):
+#            prediction_obj.store_data_prediction(msg.payload, data_type)
 
 #    print(f"topic = {msg.topic}, payload = {msg.payload}")
 
