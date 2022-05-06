@@ -9,6 +9,7 @@ import joblib
 import time
 import os
 import os.path
+from timer import Timer
 # tf.compat.v1.disable_eager_execution()
 
 class predict:
@@ -29,6 +30,9 @@ class predict:
     freq_band= 15
     freq_interested= int(sample_slice/freq_band)
     model = None
+    immutable= False
+    timing= Timer()
+
     def load_model(self):
         self.model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
         return self.model   
@@ -133,17 +137,23 @@ class predict:
 
             pickle.dump(data_out,open(self.folder_data + "shimmer.pickle", 'wb'))
 
+            if (self.pred_shim== "Going Down"):
+                self.timing.stop()                 
+                self.timing.cancel()                
+
             if (data_out.shape[0]< 2):
                 self.pred_shim= "Steady"
             else:
                 if (abs(data_out.loc[-1, "z"] - data_out.loc[-2, "z"])> self.trigger_shim_treshold):
                     self.pred_shim= "Going Down"
+                    self.timing.start()
                 elif (abs(data_out.loc[-1, "x"] - data_out.loc[-2, "x"])> self.trigger_shim_treshold or abs(data_out.loc[-1, "y"] - data_out.loc[-2, "y"])> self.trigger_shim_treshold):
 
                     if (os.path.isfile(self.folder_data + "prediction_result.pickle")):
                         activity_predicted= pickle.load(open(self.folder_data + "prediction_result.pickle", 'rb'))                                         
                         if (activity_predicted== "Help_request"):
                             self.pred_shim= "Alarm"
+                            self.immutable= True
                         else:
                             self.pred_shim= "Going Down"                            
                     else:
