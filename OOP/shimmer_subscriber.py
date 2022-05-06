@@ -8,7 +8,6 @@ import pickle
 training_selector= True
 folder_data= "./data/"
 data_type= "shimmer"
-predictors_shim= ["x", "y", "z"]
 
 prediction_obj= predict()
 train_obj= training()
@@ -28,39 +27,7 @@ def on_message(client, userdata, msg):
     if (training_selector== True):
         train_obj.store_data_train(msg.payload, data_type)
     else:
-        data_acc= []
-        temp= ""
-        msg= str(msg.pyaload)
-        msg = msg.replace("b", '')
-        msg = msg.replace("'", '')
-        count= len(msg)
-
-        for char in msg:               
-            temp+= char
-                
-            if (" " in char):
-                data_acc.append(int(temp))  
-                temp= ""              
-                
-            count-=1                    
-                
-            if count== 0:
-                data_acc.append(int(temp))
-                temp= ""
-                continue
-
-        data_acc= pd.DataFrame(data_acc).T
-        data_acc.columns= predictors_shim 
-
-        data_out= pickle.load(open(folder_data + "shimmer.pickle", 'rb')) 
-
-        data_out= data_out.append(data_acc, ignore_index=True)            
-
-        #Storage max 10 min e.g. 600 rows of 1 second each
-        if (data_out.shape[0]> 600):
-            data_out = data_out.iloc[1: , :]
-
-        pickle.dump(data_out,open(folder_data + "shimmer.pickle", 'wb'))
+        prediction_obj.store_data_prediction(msg.payload, data_type)
 
 #    print(f"topic = {msg.topic}, payload = {msg.payload}")
 

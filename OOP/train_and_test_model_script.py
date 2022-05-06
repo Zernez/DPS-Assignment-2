@@ -4,24 +4,47 @@ from predict_model import predict
 import pandas as pd
 import pickle
 import numpy as np
+import threading
+import pickle
 
-prediction_obj= predict()
-train_obj= training()
 folder_data= "./data/"
 
 train_wav= False
 
+inp = input("Choose Train Option: 1-Train 2-Predict 3-Visualize Data\n")
+
+if(inp == "1"):
+    train_wav = True
+
+if (inp== "3"):
+    training_data= pickle.load(open(folder_data + "definitive_audio.pickle", 'rb'))
+    pd.set_option('display.max_rows', None)
+    print (training_data)
+    quit()   
+
 # "train_wav= False" when you want to train the model with phidget data so use "sound222_FFT_only_training.py" for produce data
-if train_wav== False:
-#    training_data= train_obj.fetch_train_dataset_from_pickle()
-#   training_data= pickle.load(open(folder_data + "data.pickle", 'rb'))
-    training_data= pickle.load(open(folder_data + "shimmer.pickle", 'rb'))
+if train_wav== True:
+    tr = training()
+    # for i in range(0, 6):
+    #     tr.create_model(i)
+    tr.create_model()
+# train_wav= True when you want to predict
 else:
-   training_data= train_obj.fetch_train_dataset_from_wav()
+   pr = predict()
+   pr.load_model()
+   # pr.real_time_pred()
 
-pd.set_option('display.max_rows', None)
+   def do_predictions():
+       threading.Timer(1.0, do_predictions).start() # do it every 10 seconds
+       label = pr.real_time_pred()
+       print('now you are doing', label)
+       pickle.dump(label,open(folder_data + "prediction_result.pickle", 'wb'))       
 
-print (training_data)
+   do_predictions()
+
+# pd.set_option('display.max_rows', None)
+
+#print (training_data)
 
 #model= train_obj.create_model(training_data)
 

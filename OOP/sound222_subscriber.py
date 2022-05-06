@@ -3,7 +3,7 @@ from predict_model import predict
 from train_model import training 
 
 # Select True if you want to train a model
-training_selector= False
+training_selector= True
 data_type= "sound"
 
 prediction_obj= predict()
