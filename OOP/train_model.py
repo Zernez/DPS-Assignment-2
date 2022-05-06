@@ -110,7 +110,7 @@ class training:
     def store_data_train(self, msg, data_type):
 
         if (data_type== "shimmer"):
-            
+            print(msg)
             if (self.counter_train>= self.train_activity_level_shim or self.counter_train== 0):
                 self.activity = input('Insert the name of THE activity for labeling or input \'x\' for exit or \'del\' for exit and delete train data\n')
                 self.counter_train= 0

@@ -20,7 +20,7 @@ class predict:
     predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","average_amplitude"]
     predictors_shim= ["x", "y", "z"]
     pred_shim= ""
-    trigger_shim_treshold= 500
+    trigger_shim_treshold= 2000
     data_out= pd.DataFrame(columns= predictors) 
 
 
@@ -105,7 +105,7 @@ class predict:
         elif (data_type== "shimmer"):
             data_acc= []
             temp= ""
-            msg= str(msg.pyaload)
+            msg= str(msg.payload)
             msg = msg.replace("b", '')
             msg = msg.replace("'", '')
             count= len(msg)
@@ -138,29 +138,34 @@ class predict:
             pickle.dump(data_out,open(self.folder_data + "shimmer.pickle", 'wb'))
 
             if (self.pred_shim== "Going Down"):
-                self.timing.stop()                 
-                self.timing.cancel()                
+                # self.timing.stop()                 
+                # self.timing.cancel()    
+                pass            
 
             if (data_out.shape[0]< 2):
                 self.pred_shim= "Steady"
             else:
-                if (abs(data_out.loc[-1, "z"] - data_out.loc[-2, "z"])> self.trigger_shim_treshold):
-                    self.pred_shim= "Going Down"
-                    self.timing.start()
-                elif (abs(data_out.loc[-1, "x"] - data_out.loc[-2, "x"])> self.trigger_shim_treshold or abs(data_out.loc[-1, "y"] - data_out.loc[-2, "y"])> self.trigger_shim_treshold):
-
+                z = abs(data_out.iloc[-1]["z"] - data_out.iloc[-2]["z"])
+                x = abs(data_out.iloc[-1]["x"] - data_out.iloc[-2]["x"])
+                y = abs(data_out.iloc[-1]["y"] - data_out.iloc[-2]["y"])
+                if (z > self.trigger_shim_treshold and x < self.trigger_shim_treshold and y < self.trigger_shim_treshold):
+                    self.pred_shim= "Up and Down"
                     if (os.path.isfile(self.folder_data + "prediction_result.pickle")):
                         activity_predicted= pickle.load(open(self.folder_data + "prediction_result.pickle", 'rb'))                                         
                         if (activity_predicted== "Help_request"):
                             self.pred_shim= "Alarm"
                             self.immutable= True
                         else:
-                            self.pred_shim= "Going Down"                            
+                            self.pred_shim= "Going Up and Down"                            
                     else:
-                        self.pred_shim= "Going Down"                    
+                        self.pred_shim= "Going Up and Down"  
+
+                    # self.timing.start()
+                elif(x > self.trigger_shim_treshold or  y > self.trigger_shim_treshold):
+                    self.pred_shim = "Movement"                 
                 else:
                     self.pred_shim= "Steady"                    
-            
+            print(self.pred_shim)
             pickle.dump(data_out,open(self.folder_data + "shimmer_prediction.pickle", 'wb'))
 
         else:

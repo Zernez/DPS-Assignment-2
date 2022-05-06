@@ -38,7 +38,9 @@ else:
        threading.Timer(1.0, do_predictions).start() # do it every 10 seconds
        label = pr.real_time_pred()
        print('now you are doing', label)
-       pickle.dump(label,open(folder_data + "prediction_result.pickle", 'wb'))       
+       pre_shimmer= pickle.load(open(folder_data + "shimmer_prediction.pickle", 'rb'))
+       pickle.dump(label,open(folder_data + "prediction_result.pickle", 'wb'))
+       print(pre_shimmer)       
 
    do_predictions()
 
