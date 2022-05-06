@@ -214,24 +214,8 @@ class training:
         return 
 
     def fetch_train_dataset_from_pickle(self):
-        # train_data= pickle.load(open(self.folder_data + "audio_new.pickle", 'rb'))
+        train_data= pickle.load(open(self.folder_data + "audio_new.pickle", 'rb'))
         # train_data = train_data.reset_index()
-        train_data= pickle.load(open(self.folder_data + "data.pickle", 'rb'))
-        # print(train_data)
-        # # train_data = train_data.reset_index()
-
-        train_data = train_data.drop(train_data[train_data.activity == 'computering'].index)
-        train_data.loc[train_data['activity'] == 'computering_2', 'activity'] = 'computering'
-
-        train_data = train_data.drop(train_data[train_data.activity == 'music_low_activity'].index)
-        train_data = train_data.drop(train_data[train_data.activity == 'low_activity'].index)
-        train_data = train_data.drop(train_data[train_data.activity == 'watch_tv'].index)
-        train_data = train_data.drop(train_data[train_data.activity == 'computering'].index)
-        # train_data = train_data.drop(train_data[train_data.activity == 'silence'].index)
-        train_data = train_data.reset_index()
-        # # train_data = train_data.reset_index()
-        # print(train_data)
-        # pickle.dump(train_data,open(self.folder_data + "audio_new.pickle", 'wb'))
 
         for index,row in train_data.iterrows():  
             num= len (self.activities)
@@ -243,26 +227,31 @@ class training:
 
         for index, row in train_data.iterrows():
            train_data.at[index, 'activity'] = inv_map [row["activity"]]
-        # print(self.activities)
-        # pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
+        print(self.activities)
+        pickle.dump(self.activities,open(self.folder_data + "activity.pickle", 'wb'))
         return train_data
 
     def fetch_shimmer_data_from_pickle(self):
         shimmer_data = pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+        shimmer_data = shimmer_data.reset_index()
+        for index,row in shimmer_data.iterrows():  
+            num= len (self.activities)
+            name= row["activity"]
+            if name not in self.activities.values():
+                self.activities [num]= name
+
         inv_map = {v: k for k, v in self.activities.items()}
-        #for row in shimmer_data:
-        #    row["activity"] = inv_map[row["activity"]]
         for index, row in shimmer_data.iterrows():
            shimmer_data.at[index, 'activity'] = inv_map [row["activity"]]
         return shimmer_data
 
     def combine_data(self):
         sound_data = self.fetch_train_dataset_from_pickle()
-        
+        shimmer_data = self.fetch_shimmer_data_from_pickle()
         return sound_data
 
     def save_model(self, model, filepath):
-        joblib.dump(model, open(self.folder_data + filepath, 'wb'))
+        pickle.dump(model, open('./data/model.pickle', 'wb'))
 
 
     def create_model(self):
@@ -282,21 +271,21 @@ class training:
         #tf.keras.layers.Flatten(input_shape=(21,100)),
         tf.keras.layers.Dense(128, activation='relu'),
         #tf.keras.layers.Dense(10, activation='relu'),
-        tf.keras.layers.Dense(20)
+        tf.keras.layers.Dense(5)
         ])
 
         model.compile(optimizer='adam',
                       loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                       metrics=['accuracy'])
-        df = self.combine_data()
+        df = self.fetch_train_dataset_from_pickle()
 
         # print(df)
 
-        tra_data = np.asarray(df.drop(['activity','index'], axis=1))
+        tra_data = np.asarray(df.drop(['activity'], axis=1))
         tra_label = np.asarray(df['activity'])
 
-        #print(tra_data)
-        #print(tra_label)
+        print(tra_data)
+        print(tra_label)
 
         (tra_data, tra_label) = tra_data.astype('float32'), tra_label.astype(int)
         train_data, test_data, train_labels, test_labels = train_test_split(tra_data, tra_label, test_size=0.2)
@@ -313,6 +302,6 @@ class training:
         # prediction = pr.predict_model(model, test_images, categories)
         # print("Confusion Matrix:")
         # print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
-        self.save_model(model, "model.pickle")
+        pickle.dump(model, open('./data/model.pickle', 'wb'))
 
         return model

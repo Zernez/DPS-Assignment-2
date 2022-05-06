@@ -28,7 +28,7 @@ else:
    # pr.real_time_pred()
 
    def do_predictions():
-       threading.Timer(10.0, do_predictions).start() # do it every 10 seconds
+       threading.Timer(1.0, do_predictions).start() # do it every 10 seconds
        label = pr.real_time_pred()
        print('now you are doing', label)
 

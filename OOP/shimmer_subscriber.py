@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 
 # Select True if you want to train a model
-training_selector= True
+training_selector= False
 folder_data= "./data/"
 data_type= "shimmer"
 predictors_shim= ["x", "y", "z"]
@@ -30,7 +30,7 @@ def on_message(client, userdata, msg):
     else:
         data_acc= []
         temp= ""
-        msg= str(msg.pyaload)
+        msg= str(msg.payload)
         msg = msg.replace("b", '')
         msg = msg.replace("'", '')
         count= len(msg)
@@ -56,8 +56,9 @@ def on_message(client, userdata, msg):
 
         data_out= data_out.append(data_acc, ignore_index=True)            
 
+        print('new shimmer data', data_out)
         #Storage max 10 min e.g. 600 rows of 1 second each
-        if (data_out.shape[0]> 600):
+        if (data_out.shape[0]> 10):
             data_out = data_out.iloc[1: , :]
 
         pickle.dump(data_out,open(folder_data + "shimmer.pickle", 'wb'))

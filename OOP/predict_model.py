@@ -25,21 +25,24 @@ class predict:
     freq_interested= int(sample_slice/freq_band)
     model = None
     def load_model(self):
-        model= joblib.load(open(self.folder_data + "model.pickle", 'rb'))
-        self.model = model
-        return model   
+        self.model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
+        return self.model   
 
     def predict_model(self, model, test_data, categories):
-        probability_model = tf.keras.Sequential([model,
-                                             tf.keras.layers.Softmax()])
-        predictions = probability_model.predict(np.asarray(test_data).astype('float32'))
-        predicted_labels = []
+        # print(test_data)
+        probability_model = tf.keras.Sequential([model, 
+                                         tf.keras.layers.Softmax()])
+        test_data = np.asarray(test_data).astype('float32')
+        predictions = probability_model.predict(test_data)
         predicted_cat = []
+        print(predictions)
         for pred in predictions:
             lab = np.argmax(pred)
-            predicted_labels.append(lab)
+            print(pred,lab)
             predicted_cat.append(categories[lab])
+
         pre = max(set(predicted_cat),key=predicted_cat.count)
+        # pre = predicted_cat[4]
         # print(pre)
         return pre
 
@@ -74,8 +77,11 @@ class predict:
 
             data_fft= pd.DataFrame(data_fft).T
             data_fft.columns= self.predictors
-            # shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
-            # data_fft_shim= data_fft.assign(shimmer_data.tail(1))                   
+            sd = data_fft.reset_index(drop=True)
+            shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+            sh = shimmer_data.tail(1).reset_index(drop=True)
+            data_fft_shim= pd.concat([sd, sh], axis=1)
+            # print(data_fft_shim)                   
             self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
             #Storage max 10 min e.g. 600 rows of 1 second each
@@ -88,17 +94,17 @@ class predict:
     def real_time_pred(self):
 
         #Loading model
-        # print("Loading pre-trained model")
-        # loaded_model = self.load_model()
+        print("Loading pre-trained model")
+        loaded_model = self.load_model()
        
         # Select here how many rows do you need "predict_data [0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)
         
         print(time.ctime(os.path.getmtime(self.folder_data+"real_time.pickle")),' : ', end='')
-        predict_data= pickle.load(open(self.folder_data + "real_time.pickle", 'rb')) 
+        predict_data= pickle.load(open(self.folder_data + "real_time.pickle", 'rb')).tail(3) 
         # predict_data= predict_data.tail(60)
         # print(predict_data)
         self.activities = pickle.load(open(self.folder_data + "activity.pickle", 'rb'))
-        prediction= self.predict_model(self.model, predict_data, self.activities)
+        prediction= self.predict_model(loaded_model, predict_data, self.activities)
         # prediction = 1
         return prediction
 
