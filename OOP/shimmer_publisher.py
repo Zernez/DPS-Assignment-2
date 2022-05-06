@@ -45,7 +45,7 @@ else:
    print ("start command sending, done.")
 
 # read incoming data
-   ddata = ""
+   ddata = b''
    numbytes = 0
    framesize = 10 # 1byte packet type + 3byte timestamp + 3x2byte Analog Accel
    
@@ -61,12 +61,8 @@ else:
    try:
       while True:
          while numbytes < framesize:
-            ddata= str(ddata)
-            ddata += str(ser.read(framesize))
-            numbytes = len(ddata)
-         
-         if isinstance (ddata, str):
-             ddata = bytes(ddata,'utf-8')
+            ddata += ser.read(framesize)
+            numbytes= len(ddata)
              
          data = ddata[0:framesize]
          ddata = ddata[framesize:]

@@ -1,4 +1,3 @@
-from prometheus_client import Counter
 from Phidget22.PhidgetException import *
 from Phidget22.Phidget import *
 from Phidget22.Devices.VoltageRatioInput import *
@@ -6,14 +5,12 @@ import traceback
 import time
 import paho.mqtt.client as mqtt
 from time import sleep
-from numpy.fft import fft
-import numpy as np
 
 #Declare any event handlers here. These will be called every time the associated event occurs.
 
 def onVoltageRatioChange(self, voltageRatio):
 
-	client.publish("test", voltageRatio)	
+	client.publish("sound", voltageRatio, retain= True)
 #	print("VoltageRatio: " + str(voltageRatio))
 
 def onAttach(self):
@@ -22,10 +19,10 @@ def onAttach(self):
 def onDetach(self):
 	print("Detach!")
 
-def main(self):
+def main():
 	try:
 		#Create your Phidget channels
-		voltageRatioInput0 = self.VoltageRatioInput()
+		voltageRatioInput0 = VoltageRatioInput()
 
 		#Set addressing parameters to specify which channel to open (if any)
 		voltageRatioInput0.setDeviceSerialNumber(137422)
