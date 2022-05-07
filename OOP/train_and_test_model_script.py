@@ -5,7 +5,6 @@ import pandas as pd
 import pickle
 import numpy as np
 import threading
-import pickle
 
 folder_data= "./data/"
 

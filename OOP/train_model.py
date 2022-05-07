@@ -22,7 +22,7 @@ class training:
     activities= {}
     folder_data= "./data/"
     folder_audio= "./data/audio/"   
-    predictors_audio = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5", "average_amplitude"]
+    predictors_audio = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15", "average_amplitude"]
     predictors_shim = ["x", "y", "z"]
     # Set data type!
     data_type= "sound"
@@ -37,11 +37,10 @@ class training:
     duration= 1
     N= sample_rate*duration
     sample_slice= sample_rate
-    freq_band= 10
-    freq_interested= int(sample_slice/freq_band)
+    freq_band= 15
 
     counter_train= 0
-    train_activity_level= 55000
+    train_activity_level= 60000
     train_activity_level_shim= 200   
     activity= ''
       
@@ -182,18 +181,23 @@ class training:
                 temp_data_fft = np.abs(rfft(self.sampler))
                 data_fft= [temp_data_fft[0]]      
 
-                i= self.freq_interested
+                lenght= int(len(temp_data_fft)/2)
+                
+                redux_data= temp_data_fft [0:lenght]
+
+                freq_interested= int(lenght/ self.freq_band)
+                i= freq_interested
                 j= 1
                 slice_y= []
                 start_index= 1
 
-                while (i< len (temp_data_fft) and j <= self.freq_band):
+                while (i< lenght and j <= self.freq_band):
                     slice_y.append(i-1)
-                    i+= self.freq_interested
+                    i+= freq_interested
                     j+= 1 
 
                 for index in slice_y:
-                    temp_mean= temp_data_fft [start_index:index]
+                    temp_mean= redux_data [start_index:index]
                     data_fft.append(np.mean(temp_mean, axis= 0))
                     start_index= index
   
@@ -205,12 +209,14 @@ class training:
                 data_fft= pd.DataFrame(data_fft).T
                 data_fft.columns= self.predictors_audio
                 data_fft ["activity"]= self.activity
-                if (self.counter_train> 30000 and self.counter_train< 51000):
-                     print ("Capturing!")     
-                     self.data_out= self.data_out.append(data_fft, ignore_index=True)
+                if (self.counter_train> 15000):
+                    print("Prepare!")               
+                if (self.counter_train> 30000 and self.counter_train< 60000):
+                    print ("Capturing!")     
+                    self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
                 #Storage max 10 min e.g. 600 rows of 1 second each
-                if (self.data_out.shape[0]> 200):
+                if (self.data_out.shape[0]> 400):
                     self.data_out = self.data_out.iloc[1: , :]
 
                 pickle.dump(self.data_out,open(self.folder_data + "definitive_audio.pickle", 'wb'))
@@ -276,7 +282,7 @@ class training:
 
         print(df)
 
-        df.loc[df['activity'] == 6, 'activity'] = 4
+#        df.loc[df['activity'] == 6, 'activity'] = 4
 #        df.loc[df['activity'] == 5, 'activity'] = 3
         #1 build model
         model = tf.keras.Sequential([
@@ -309,14 +315,15 @@ class training:
         # print(model.predict())
         print('\nTest accuracy:', test_acc)
 
-        pickle.dump(model, open('./data/model.pickle', 'wb'))
+        pickle.dump(model, open('./data/models/model_final.pickle', 'wb'))
 
-        pr = predict()
-        categories = self.activities
-        prediction = pr.predict_model(model, test_data, categories)
 
-        print("Confusion Matrix:")
-        print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
-        pickle.dump(model, open('./data/model.pickle', 'wb'))
+#        pr = predict()
+#        categories = self.activities
+#        prediction = pr.predict_model(model, test_data, categories)
+
+#        print("Confusion Matrix:")
+#        print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
+#        pickle.dump(model, open('./data/model.pickle', 'wb'))
 
         return model

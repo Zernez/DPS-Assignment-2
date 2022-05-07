@@ -17,7 +17,7 @@ class predict:
     #To hard-code activities here   
     activities= {}
     folder_data= "./data/"    
-    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","average_amplitude"]
+    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15", "average_amplitude"]
     predictors_shim= ["x", "y", "z"]
     pred_shim= ""
     trigger_shim_treshold= 2000
@@ -30,8 +30,7 @@ class predict:
     duration= 1
     N= sample_rate*duration
     sample_slice= sample_rate
-    freq_band= 10
-    freq_interested= int(sample_slice/freq_band)
+    freq_band= 15
     model = None
     immutable= False
     timing= Timer()
@@ -66,18 +65,23 @@ class predict:
                 temp_data_fft = np.abs(rfft(self.sampler))
                 data_fft= [temp_data_fft[0]]      
 
-                i= self.freq_interested
+                lenght= int(len(temp_data_fft)/2)
+                
+                redux_data= temp_data_fft [0:lenght]
+
+                freq_interested= int(lenght/ self.freq_band)
+                i= freq_interested
                 j= 1
                 slice_y= []
                 start_index= 1
 
-                while (i< len (temp_data_fft) and j <= self.freq_band):
+                while (i< lenght and j <= self.freq_band):
                     slice_y.append(i-1)
-                    i+= self.freq_interested
+                    i+= freq_interested
                     j+= 1 
 
                 for index in slice_y:
-                    temp_mean= temp_data_fft [start_index:index]
+                    temp_mean= redux_data [start_index:index]
                     data_fft.append(np.mean(temp_mean, axis= 0))
                     start_index= index
   
@@ -152,7 +156,7 @@ class predict:
                     self.pred_shim= "Up and Down"
                     if (os.path.isfile(self.folder_data + "prediction_result.pickle")):
                         activity_predicted= pickle.load(open(self.folder_data + "prediction_result.pickle", 'rb'))                                         
-                        if (activity_predicted== "Help_request"):
+                        if (activity_predicted== "Help"):
                             self.pred_shim= "Alarm"
                             self.immutable= True
                         else:
