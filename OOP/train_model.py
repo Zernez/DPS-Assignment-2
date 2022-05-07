@@ -315,7 +315,7 @@ class training:
         # print(model.predict())
         print('\nTest accuracy:', test_acc)
 
-        pickle.dump(model, open('./data/models/model_final.pickle', 'wb'))
+        pickle.dump(model, open('./data/model.pickle', 'wb'))
 
 
 #        pr = predict()
