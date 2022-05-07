@@ -36,7 +36,7 @@ class predict:
     timing= Timer()
 
     def load_model(self):
-        self.model= pickle.load(open(self.folder_data + "model.pickle", 'rb'))
+        self.model= pickle.load(open(self.folder_data + "model_final.pickle", 'rb'))
         return self.model   
 
     def predict_model(self, model, test_data, categories):
