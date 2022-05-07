@@ -16,6 +16,7 @@ import joblib
 from predict_model import predict
 import matplotlib.pyplot as plt
 
+
 class training:
 
     #Defining model and training it
@@ -318,12 +319,18 @@ class training:
         pickle.dump(model, open('./data/model_final.pickle', 'wb'))
 
 
-#        pr = predict()
-#        categories = self.activities
-#        prediction = pr.predict_model(model, test_data, categories)
 
-#        print("Confusion Matrix:")
-#        print(confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values())))
+        pr = predict()
+        categories = self.activities
+        prediction = pr.predict_model(model, test_data, categories)
+
+        print("Confusion Matrix:")
+        conf_mat = confusion_matrix([categories[k] for k in test_labels], prediction, labels=list(categories.values()))
+        print(conf_mat)
+
+        plt.imshow(conf_mat)
+        plt.colorbar()
+        plt.show()
 #        pickle.dump(model, open('./data/model.pickle', 'wb'))
 
         return model
