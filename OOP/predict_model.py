@@ -1,60 +1,194 @@
-import paho.mqtt.client as mqtt
 import pickle
 import pandas as pd
-from train_model import training
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+import numpy as np
+from scipy.fft import rfft, rfftfreq
+import time
+import joblib
+import time
+import os
+import os.path
+from timeit import Timer
+# tf.compat.v1.disable_eager_execution()
 
 class predict:
-   
-    def __init__(self):
-        model= training()
-        activities= model.activities
-    
-    client = mqtt.Client()
+
+    #To hard-code activities here   
+    activities= {}
+    folder_data= "./data/"    
+    predictors = ["freq_0","freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","freq_11","freq_12","freq_13","freq_14","freq_15", "average_amplitude"]
+    predictors_shim= ["x", "y", "z"]
+    pred_shim= ""
+    trigger_shim_treshold= 2000
+    data_out= pd.DataFrame(columns= predictors) 
+
+
+    counter= 0
+    sampler= []
+    sample_rate= 1000
+    duration= 1
+    N= sample_rate*duration
+    sample_slice= sample_rate
+    freq_band= 15
+    model = None
+    immutable= False
+    timing= Timer()
 
     def load_model(self):
-        model= model_to_load()
-        return model   
+        # self.model= pickle.load(open(self.folder_data + "model_final.pickle", 'rb'))
+        self.model = tf.keras.models.load_model('./data/modelsave/')
+        # self.model.summary()
+        return self.model   
 
-    def predict_model(self, data, model):
-        predict= model_to_run()
-        return predict    
-    
-    # The callback for when the client receives a CONNACK response from the server.
-    
-    def on_connect(client, userdata, flags, rc):
-        print("Connected with result code "+str(rc))
+    def predict_model(self, model, test_data, categories):
+        # print(test_data)
+        probability_model = tf.keras.Sequential([model, 
+                                         tf.keras.layers.Softmax()])
+        test_data = np.asarray(test_data).astype('float32')
+        predictions = probability_model.predict(test_data)
+        predicted_cat = []
+        for pred in predictions:
+            lab = np.argmax(pred)
+            predicted_cat.append(categories[lab])
 
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
-    client.subscribe("test")
+        pre = max(set(predicted_cat),key=predicted_cat.count)
 
-# The callback for when a PUBLISH message is received from the server.
-    def on_message(self, client, userdata, msg):
-        predictors = ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10","average_amplitude","activity"]
-        frequencies= ["freq_1","freq_2","freq_3","freq_4","freq_5","freq_6","freq_7","freq_8","freq_9","freq_10"]
-        data= msg.payload
-        data_out= pd.Dataframe(columns=predictors)
+        return pre
+
+    def store_data_prediction(self, msg, data_type):  
         
-        for rowIndex, row in data.iterrows():           
-            temp_data= pd.DataFrame(row, columns=frequencies)
-            temp_data["average_amplitude"]= temp_data.mean(axis= 1)
-            data_out= data_out.append(temp_data, ignore_index=True)
+        if (data_type== "sound"):
+            if (self.sample_slice> self.counter):
+                self.counter+= 1
+                self.sampler.append(msg)
+            else:
+                row_ampl= [np.mean(self.sampler, axis= 0)]
+                temp_data_fft = np.abs(rfft(self.sampler))
+                data_fft= [temp_data_fft[0]]      
+
+                lenght= int(len(temp_data_fft)/2)
+                
+                redux_data= temp_data_fft [0:lenght]
+
+                freq_interested= int(lenght/ self.freq_band)
+                i= freq_interested
+                j= 1
+                slice_y= []
+                start_index= 1
+
+                while (i< lenght and j <= self.freq_band):
+                    slice_y.append(i-1)
+                    i+= freq_interested
+                    j+= 1 
+
+                for index in slice_y:
+                    temp_mean= redux_data [start_index:index]
+                    data_fft.append(np.mean(temp_mean, axis= 0))
+                    start_index= index
+  
+                data_fft.append(row_ampl[0])
+
+                self.sampler.clear()
+                self.counter= 0
+
+                data_fft= pd.DataFrame(data_fft).T
+
+                data_fft.columns= self.predictors
+#                sd = data_fft.reset_index(drop=True)
+#                shimmer_data= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+#                sh = shimmer_data.tail(1).reset_index(drop=True)
+#                data_fft_shim= pd.concat([sd, sh], axis=1)
+                # print(data_fft_shim)                   
+                self.data_out= self.data_out.append(data_fft, ignore_index=True)
+
+                #Storage max 10 rows (self.data_out.shape[0]> 10)
+                if (self.data_out.shape[0]> 10):
+                    self.data_out = self.data_out.iloc[1: , :] 
+                # print(self.data_out)
+                pickle.dump(self.data_out,open(self.folder_data + "real_time.pickle", 'wb'))
+        
+        elif (data_type== "shimmer"):
+            data_acc= []
+            temp= ""
+            msg= str(msg.payload)
+            msg = msg.replace("b", '')
+            msg = msg.replace("'", '')
+            count= len(msg)
+
+            for char in msg:               
+                temp+= char
+                
+                if (" " in char):
+                    data_acc.append(int(temp))  
+                    temp= ""              
+                
+                count-=1                    
+                
+                if count== 0:
+                    data_acc.append(int(temp))
+                    temp= ""
+                    continue
+
+            data_acc= pd.DataFrame(data_acc).T
+            data_acc.columns= self.predictors_shim
+
+            data_out= pickle.load(open(self.folder_data + "shimmer.pickle", 'rb'))
+
+            data_out= data_out.append(data_acc, ignore_index=True)
+
+            #Storage max 10 min e.g. 600 rows of 1 second each
+            if (data_out.shape[0]> 10):
+                data_out = data_out.iloc[1: , :]
+
+            pickle.dump(data_out,open(self.folder_data + "shimmer.pickle", 'wb'))
+
+            if (self.pred_shim== "Going Down"):
+                # self.timing.stop()                 
+                # self.timing.cancel()    
+                pass            
+
+            if (data_out.shape[0]< 2):
+                self.pred_shim= "Steady"
+            else:
+                z = abs(data_out.iloc[-1]["z"] - data_out.iloc[-2]["z"])
+                x = abs(data_out.iloc[-1]["x"] - data_out.iloc[-2]["x"])
+                y = abs(data_out.iloc[-1]["y"] - data_out.iloc[-2]["y"])
+                if (z > self.trigger_shim_treshold and x < self.trigger_shim_treshold and y < self.trigger_shim_treshold):
+                    self.pred_shim= "Up and Down"
+                    if (os.path.isfile(self.folder_data + "prediction_result.pickle")):
+                        activity_predicted= pickle.load(open(self.folder_data + "prediction_result.pickle", 'rb'))                                         
+                        if (activity_predicted== "Help"):
+                            self.pred_shim= "Alarm"
+                            self.immutable= True
+                        else:
+                            self.pred_shim= "Going Up and Down"                            
+                    else:
+                        self.pred_shim= "Going Up and Down"  
+
+                    # self.timing.start()
+                elif(x > self.trigger_shim_treshold or  y > self.trigger_shim_treshold):
+                    self.pred_shim = "Movement"                 
+                else:
+                    self.pred_shim= "Steady"                    
+            print(self.pred_shim)
+            pickle.dump(self.pred_shim,open(self.folder_data + "shimmer_prediction.pickle", 'wb'))
+
+        else:
+            print ("No valid data")
+
+        return
+
+    def real_time_pred(self):
 
         #Loading model
         print("Loading pre-trained model")
-        loaded_model = self.load_model()        
-
-        self.predict_model(data_out, loaded_model)
-
-        print(f"topic = {msg.topic}, payload = {msg.payload}")
-
-    # Client callback that is called when the client successfully connects to the broker.
-    client.on_connect = on_connect
-    # Client callback that is called when a message within the subscribed topics is published.
-    client.on_message = on_message
-
-    client.connect("84.238.56.157", 1883, 60)
-
-    # Blocking call that processes network traffic, dispatches callbacks and handles reconnecting.
-    # Other loop*() functions are available that give a threaded interface and a manual interface.
-    client.loop_forever()
+        loaded_model = self.load_model()
+        
+        print(time.ctime(os.path.getmtime(self.folder_data+"real_time.pickle")),' : ', end='')
+        predict_data= pickle.load(open(self.folder_data + "real_time.pickle", 'rb')).tail(5) 
+        # predict_data= predict_data.tail(60)
+        # print(predict_data)
+        self.activities = pickle.load(open(self.folder_data + "activity.pickle", 'rb'))
+        prediction= self.predict_model(loaded_model, predict_data, self.activities)
+        return prediction

@@ -6,27 +6,57 @@ import time
 import paho.mqtt.client as mqtt
 from time import sleep
 from numpy.fft import fft
+import numpy as np
 
 #Declare any event handlers here. These will be called every time the associated event occurs.
 
 class sounds:
 
 	counter= 0
+	counter_total= 0
+	quantity= 60
 	sampler= []
 	client = mqtt.Client()
+	sample_rate= 1000
+	sample_slice= sample_rate
+	freq_band= 15
+	freq_interested= int(sample_slice/freq_band)
 
 	def onVoltageRatioChange(self, voltageRatio):
 	
-		if (self.counter< 500):
+		if (self.counter< (self.sample_slice)):
 			self.counter+= 1
+			self.counter_total+= 1
 			self.sampler.append(voltageRatio)
 		else:
-			fft= fft(self.sampler)
-			self.client.publish("test", f"test message {fft}")
-			self.sampler.clear()
-			self.counter= 0
+			row_ampl= [np.mean(np.abs(self.sampler), axis= 0)]
+			temp_data_fft = np.abs(fft(self.sampler).real)
+			data_fft= [temp_data_fft[0]]
+               
+			i= self.freq_interested
+			j= 1
+			slice_y= []
+			start_index= 1
+        
+			while (i< len (temp_data_fft) and j <= self.freq_band):
+				slice_y.append(i-1)
+				i+= self.freq_interested
+				j+= 1 
+
+			for index in slice_y:
+				temp_mean= temp_data_fft [start_index:index]
+				data_fft.append(np.mean(temp_mean, axis= 0))
+				start_index= index
+            
+			data_fft.append(row_ampl) 			
 			
-		print("VoltageRatio: " + str(voltageRatio))
+			if self.counter_total< self.quantity:
+				self.counter_total+= 1
+				self.client.publish("test", data_fft)
+				self.sampler.clear()
+				self.counter= 0				
+
+#		print("VoltageRatio: " + str(voltageRatio))
 
 	def onAttach(self):
 		print("Attach!")
@@ -53,7 +83,7 @@ class sounds:
 			dataInterval = voltageRatioInput0.getDataInterval()
 			print("DataInterval: " + str(dataInterval))
 		
-			voltageRatioInput0.setDataInterval(10)
+			voltageRatioInput0.setDataInterval(1)
 			dataInterval = voltageRatioInput0.getDataInterval()
 			print("DataInterval: " + str(dataInterval))
 
