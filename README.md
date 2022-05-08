@@ -1,5 +1,5 @@
 
-# DPS-Assignment-2
+# DPS-Final Assignment
 
 - The files in "src" folder are ready to run and can do a specific task or a part of the system
 - The files in "src/templates" folder are for web rendering the result
