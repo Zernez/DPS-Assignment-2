@@ -2,10 +2,9 @@
 # DPS-Assignment-2
 
 - The files in "src" folder are ready to run and can do a specific task or a part of the system
-- The files in the main folder are template or old file used for reference
-- The files in "dev" folder are script for function or part of the system that has to be developed  
+- The files in "src/templates" folder are for web rendering the result
+- The files in "data" store info for running time of the model and UI
+- Now the system is setted up to work as predictor e.g. production
+- For training the model set up the "train_model.py" , "shimmer_subscriber.py", "sound222_subscriber.py" properly in the first variables of the code after the comment
+- UML overview in the main folder
 
-- The file with the word "example" are files useful for starting develop the structure having: Kafka is similar to Mosquitto (must to substitute Kafka with Mosquitto),
-  naive-bayes classificator can be changed to another classificator.
-- Is need to create a training data, e.g. record each action and transform into a labeled FFT (Fast Fourier Transform for convert into frequencies) dataset. OK
-- Is need to create a real-time data, e.g. record each action and transform into a labeled FFT (Fast Fourier Transform for convert into frequencies) dataset.  
