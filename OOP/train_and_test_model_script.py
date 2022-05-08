@@ -6,6 +6,8 @@ import pickle
 import numpy as np
 import threading
 
+
+print('1')
 folder_data= "./data/"
 
 train_wav= False
@@ -37,20 +39,11 @@ else:
        threading.Timer(1.0, do_predictions).start() # do it every 10 seconds
        label = pr.real_time_pred()
        print('now you are doing', label)
-       pre_shimmer= pickle.load(open(folder_data + "shimmer_prediction.pickle", 'rb'))
-       pickle.dump(label,open(folder_data + "prediction_result.pickle", 'wb'))
-       print(pre_shimmer)       
+#        pre_shimmer= pickle.load(open(folder_data + "shimmer_prediction.pickle", 'rb'))
+#       pickle.dump(label,open(folder_data + "prediction_result.pickle", 'wb'))
+    #    newlabel = label
+    #    print(pre_shimmer)       
 
    do_predictions()
 
-# pd.set_option('display.max_rows', None)
-
-#print (training_data)
-
-#model= train_obj.create_model(training_data)
-
-# Add activities "activities=[<all_activities>]" accordingly to "sound222_subscriber.py" settings
-#activities= pickle.load(open(folder_data + "activity.pickle", 'rb'))
-
-#prediction= prediction_obj.predict_model(model, training_data, activities)
 

@@ -284,20 +284,19 @@ class training:
 
 #        df.loc[df['activity'] == 6, 'activity'] = 4
 #        df.loc[df['activity'] == 5, 'activity'] = 3
+        
+        
         #1 build model
         model = tf.keras.Sequential([
         #tf.keras.layers.Flatten(input_shape=(21,100)),
         tf.keras.layers.Dense(128, activation='relu'),
         #tf.keras.layers.Dense(10, activation='relu'),
-        tf.keras.layers.Dense(8)
+        tf.keras.layers.Dense(5)
         ])
 
         model.compile(optimizer='adam',
                       loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                       metrics=['accuracy'])
-#        df = self.fetch_train_dataset_from_pickle()
-
-        # print(df)
 
         tra_data = np.asarray(df.drop(['activity'], axis=1))
         tra_label = np.asarray(df['activity'])
@@ -315,9 +314,10 @@ class training:
         # print(model.predict())
         print('\nTest accuracy:', test_acc)
 
-        pickle.dump(model, open('./data/model_final.pickle', 'wb'))
-
-
+        # pickle.dump(model, open('./data/model_final.pickle', 'wb'))
+        # modelll = pickle.load(open('./data/model_final.pickle', 'rb'))
+        model.save('./data/modelsave/')
+        
 #        pr = predict()
 #        categories = self.activities
 #        prediction = pr.predict_model(model, test_data, categories)

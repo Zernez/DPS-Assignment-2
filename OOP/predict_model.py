@@ -36,7 +36,9 @@ class predict:
     timing= Timer()
 
     def load_model(self):
-        self.model= pickle.load(open(self.folder_data + "model_final.pickle", 'rb'))
+        # self.model= pickle.load(open(self.folder_data + "model_final.pickle", 'rb'))
+        self.model = tf.keras.models.load_model('./data/modelsave/')
+        # self.model.summary()
         return self.model   
 
     def predict_model(self, model, test_data, categories):
@@ -52,7 +54,7 @@ class predict:
 
         pre = max(set(predicted_cat),key=predicted_cat.count)
 
-        return predicted_cat
+        return pre
 
     def store_data_prediction(self, msg, data_type):  
         
@@ -100,10 +102,10 @@ class predict:
                 # print(data_fft_shim)                   
                 self.data_out= self.data_out.append(data_fft, ignore_index=True)
 
-                #Storage max 10 min e.g. 600 rows of 1 second each
+                #Storage max 10 rows (self.data_out.shape[0]> 10)
                 if (self.data_out.shape[0]> 10):
                     self.data_out = self.data_out.iloc[1: , :] 
-                print(self.data_out)
+                # print(self.data_out)
                 pickle.dump(self.data_out,open(self.folder_data + "real_time.pickle", 'wb'))
         
         elif (data_type== "shimmer"):
@@ -170,7 +172,7 @@ class predict:
                 else:
                     self.pred_shim= "Steady"                    
             print(self.pred_shim)
-            pickle.dump(data_out,open(self.folder_data + "shimmer_prediction.pickle", 'wb'))
+            pickle.dump(self.pred_shim,open(self.folder_data + "shimmer_prediction.pickle", 'wb'))
 
         else:
             print ("No valid data")
@@ -182,14 +184,11 @@ class predict:
         #Loading model
         print("Loading pre-trained model")
         loaded_model = self.load_model()
-       
-        # Select here how many rows do you need "predict_data [0:<How_many_row do you want>] (e.g. 1 second is 1 row, max 600 rows)
         
         print(time.ctime(os.path.getmtime(self.folder_data+"real_time.pickle")),' : ', end='')
-        predict_data= pickle.load(open(self.folder_data + "real_time.pickle", 'rb')).tail(3) 
+        predict_data= pickle.load(open(self.folder_data + "real_time.pickle", 'rb')).tail(5) 
         # predict_data= predict_data.tail(60)
         # print(predict_data)
         self.activities = pickle.load(open(self.folder_data + "activity.pickle", 'rb'))
         prediction= self.predict_model(loaded_model, predict_data, self.activities)
-        # prediction = 1
         return prediction
