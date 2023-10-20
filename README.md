@@ -1,5 +1,7 @@
 
-# DPS-Final Assignment
+# DPS Final Assignment
+
+Introducing Calm Technologies from the course of Distribute and Pervasive Systems
 
 - The files in "src" folder are ready to run and can do a specific task or a part of the system
 - The files in "src/templates" folder are for web rendering the result
@@ -9,3 +11,4 @@
 - For running the system on real-time prediction you have to start the publishers "shimmer_publisher.py", "sound222_publisher.py" in RPI4 and "shimmer_subscriber.py" or "sound222_subscriber.py", lastly "train_and_test_model_script.py" in your PC with the option "2"
 - UML overview in the main folder
 
+![Diagram](DiaUML.png)
